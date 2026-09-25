@@ -78,7 +78,17 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
 
     debounceTimeout.current = window.setTimeout(() => {
       performSearch(val);
-    }, 350);
+    }, 500);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (debounceTimeout.current) {
+        window.clearTimeout(debounceTimeout.current);
+      }
+      performSearch(query);
+    }
   };
 
   const handleAdd = async (product: AhProductCard) => {
@@ -94,6 +104,9 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
   };
 
   const handleClear = () => {
+    if (debounceTimeout.current) {
+      window.clearTimeout(debounceTimeout.current);
+    }
     setQuery('');
     setResults([]);
     setHasSearched(false);
@@ -102,7 +115,16 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-5 mb-5 sm:mb-6 transition-colors">
-      <div className="mb-3 sm:mb-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (debounceTimeout.current) {
+            window.clearTimeout(debounceTimeout.current);
+          }
+          performSearch(query);
+        }}
+        className="mb-3 sm:mb-4"
+      >
         <label htmlFor="ah-search-input" className="block text-xs sm:text-sm font-semibold text-gray-900 dark:text-white mb-1.5 sm:mb-2">
           Albert Heijn Product Zoeken
         </label>
@@ -115,6 +137,7 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
             type="text"
             value={query}
             onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
@@ -124,6 +147,7 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
           />
           {query && (
             <button
+              type="button"
               onClick={handleClear}
               className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
             >
@@ -131,7 +155,7 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
             </button>
           )}
         </div>
-      </div>
+      </form>
 
       {/* Quick suggestions if no query */}
       {!query && (

@@ -182,10 +182,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       },
     });
 
-    // If token is rejected (401 Unauthorized or 403 Forbidden), force refresh and retry once
-    if (ahRes.status === 401 || ahRes.status === 403) {
-      console.warn(`AH API returned ${ahRes.status}, refreshing token and retrying once...`);
-      token = await getAhToken(true);
+    // If rate-limited (429/403) or token rejected (401), back off and retry
+    if (ahRes.status === 401 || ahRes.status === 403 || ahRes.status === 429) {
+      if (ahRes.status === 401) {
+        token = await getAhToken(true);
+      } else {
+        // Wait 400ms for rate-limit window to ease
+        await new Promise((r) => setTimeout(r, 400));
+      }
+
       ahRes = await fetch(targetUrl, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -194,6 +199,20 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           'Accept': 'application/json',
         },
       });
+
+      // If still 403 on retry, try refreshing token as final recovery
+      if (ahRes.status === 403) {
+        token = await getAhToken(true);
+        await new Promise((r) => setTimeout(r, 300));
+        ahRes = await fetch(targetUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': USER_AGENT,
+            'X-Application': 'AHWEBSHOP',
+            'Accept': 'application/json',
+          },
+        });
+      }
     }
 
     if (!ahRes.ok) {
