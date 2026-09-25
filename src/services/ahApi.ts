@@ -121,11 +121,14 @@ export async function getProductGtin(webshopId: number, isRetry = false): Promis
  * Converts an AH product card into a PrintLabelItem ready for the print queue.
  */
 export async function createLabelFromProduct(product: AhProductCard): Promise<PrintLabelItem> {
-  // Fetch official GTIN
-  const gtin = await getProductGtin(product.webshopId);
+  // If product came from an exact barcode scan, preserve that physical barcode!
+  let barcode = product.scannedBarcode;
 
-  // If GTIN is not found in detail, generate a fallback or pseudo-EAN based on webshopId
-  const barcode = gtin || String(product.webshopId).padStart(13, '0');
+  if (!barcode) {
+    // Fetch official GTIN
+    const gtin = await getProductGtin(product.webshopId);
+    barcode = gtin || String(product.webshopId).padStart(13, '0');
+  }
 
   // Find suitable product image
   const imgUrl = product.images?.[0]?.url || '';

@@ -288,8 +288,32 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
 
       {/* No results message */}
       {hasSearched && !isLoading && results.length === 0 && !error && (
-        <div className="mt-4 p-4 text-center text-sm text-gray-500 dark:text-gray-400">
-          Geen producten gevonden voor <span className="font-semibold text-gray-700 dark:text-gray-300">"{query}"</span>. Probeer een andere term of voeg een handmatig label toe.
+        <div className="mt-4 p-4 text-center rounded-xl bg-gray-50 dark:bg-slate-900/50 border border-gray-200 dark:border-slate-700 space-y-3">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Geen producten gevonden voor <span className="font-semibold text-gray-700 dark:text-gray-300">"{query}"</span>.
+          </p>
+          {/^\d{8,14}$/.test(query.trim()) && (
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  onAddLabel({
+                    id: `scan-${Date.now()}`,
+                    title: 'Gescand Product',
+                    salesUnitSize: 'Stuk',
+                    articleNumber: query.trim(),
+                    barcode: query.trim(),
+                    price: null,
+                    quantity: 1,
+                  });
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-ah-blue hover:bg-ah-blueDark text-white shadow-sm transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Maak direct een sticker met streepjescode {query.trim()}</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 

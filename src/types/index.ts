@@ -27,6 +27,7 @@ export interface AhProductCard {
   mainCategory?: string;
   subCategory?: string;
   brand?: string;
+  scannedBarcode?: string;
 }
 
 export interface AhSearchResult {

@@ -73,24 +73,28 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         formatsToSupport: [
           Html5QrcodeSupportedFormats.EAN_13,
           Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.CODE_128,
           Html5QrcodeSupportedFormats.UPC_A,
           Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.ITF,
         ],
         verbose: false,
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true,
+        },
       });
 
       scannerRef.current = html5QrCode;
 
       const config = {
-        fps: 15,
+        fps: 20,
         qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-          // Horizontal rectangular scanning area tailored for retail barcodes
-          const width = Math.floor(Math.min(viewfinderWidth * 0.85, 320));
-          const height = Math.floor(Math.min(viewfinderHeight * 0.45, 140));
+          // Generous scanning area so both horizontal and vertical barcodes on bottles fit easily
+          const width = Math.floor(Math.min(viewfinderWidth * 0.90, 360));
+          const height = Math.floor(Math.min(viewfinderHeight * 0.65, 260));
           return { width, height };
         },
-        aspectRatio: 1.333334,
       };
 
       await html5QrCode.start(
@@ -222,19 +226,19 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
           {/* Visual Barcode Target Overlay */}
           {isScanning && !error && (
-            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
-              <div className="relative w-64 h-32 border-2 border-ah-blue/70 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]">
+            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-4">
+              <div className="relative w-72 sm:w-80 h-44 sm:h-52 border-2 border-ah-blue/70 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.50)]">
                 {/* Corner markers */}
-                <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-ah-blue rounded-tl" />
-                <div className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-ah-blue rounded-tr" />
-                <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-ah-blue rounded-bl" />
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-ah-blue rounded-br" />
+                <div className="absolute -top-1 -left-1 w-5 h-5 border-t-4 border-l-4 border-ah-blue rounded-tl" />
+                <div className="absolute -top-1 -right-1 w-5 h-5 border-t-4 border-r-4 border-ah-blue rounded-tr" />
+                <div className="absolute -bottom-1 -left-1 w-5 h-5 border-b-4 border-l-4 border-ah-blue rounded-bl" />
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 border-b-4 border-r-4 border-ah-blue rounded-br" />
 
                 {/* Animated horizontal scanning beam */}
-                <div className="absolute inset-x-2 h-0.5 bg-gradient-to-r from-transparent via-ah-blue to-transparent animate-pulse-slow top-1/2 -translate-y-1/2 shadow-[0_0_12px_#00A1E4]" />
+                <div className="absolute inset-x-2 h-0.5 bg-gradient-to-r from-transparent via-ah-blue to-transparent animate-pulse-slow top-1/2 -translate-y-1/2 shadow-[0_0_14px_#00A1E4]" />
               </div>
-              <span className="mt-3 px-3 py-1 rounded-full bg-black/60 text-white/90 text-xs backdrop-blur-sm">
-                Plaats streepjescode in het kader
+              <span className="mt-3 px-3.5 py-1.5 rounded-full bg-black/75 text-white/95 text-xs backdrop-blur-sm text-center shadow-lg max-w-[90%]">
+                Plaats streepjescode in het kader (draai flessen bij verticale codes)
               </span>
             </div>
           )}

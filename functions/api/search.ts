@@ -164,7 +164,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           if (product && product.webshopId) {
             return new Response(
               JSON.stringify({
-                products: [product],
+                products: [{ ...product, scannedBarcode: trimmed }],
                 page: { totalElements: 1, totalPages: 1, size: 1, number: 0 },
               }),
               {
@@ -236,8 +236,74 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       );
     }
 
-    const ahData = await ahRes.text();
-    return new Response(ahData, {
+    const ahJson = (await ahRes.json()) as {
+      products?: Record<string, unknown>[];
+      cards?: { products?: Record<string, unknown>[] }[];
+      [key: string]: unknown;
+    };
+
+    let prods = ahJson.products || [];
+    if (prods.length === 0 && Array.isArray(ahJson.cards)) {
+      prods = ahJson.cards.flatMap((c) => c.products || []);
+    }
+
+    // If AH returned 0 products and query is a barcode, try OpenFoodFacts to resolve the product name!
+    if (prods.length === 0 && /^\d{8,14}$/.test(trimmed)) {
+      try {
+        const offRes = await fetch(`https://world.openfoodfacts.org/api/v0/product/${trimmed}.json`, {
+          headers: { 'User-Agent': 'AppieTools/1.0 (info@hooijmaijers.me)' },
+        });
+        if (offRes.ok) {
+          const offJson = (await offRes.json()) as {
+            status?: number;
+            product?: { product_name?: string; brands?: string };
+          };
+          if (offJson.status === 1 && offJson.product) {
+            const brand = offJson.product.brands?.split(',')[0]?.trim() || '';
+            const name = offJson.product.product_name?.trim() || '';
+            const searchTerms = [brand, name].filter(Boolean).join(' ');
+            if (searchTerms.length > 2) {
+              const fallbackUrl = `https://api.ah.nl/mobile-services/product/search/v2?query=${encodeURIComponent(searchTerms)}&size=${size}&page=${page}`;
+              const offAhRes = await executeSearch(fallbackUrl, token);
+              if (offAhRes.ok) {
+                const offAhData = (await offAhRes.json()) as {
+                  products?: Record<string, unknown>[];
+                  cards?: { products?: Record<string, unknown>[] }[];
+                  [key: string]: unknown;
+                };
+                let offProds = offAhData.products || [];
+                if (offProds.length === 0 && Array.isArray(offAhData.cards)) {
+                  offProds = offAhData.cards.flatMap((c) => c.products || []);
+                }
+                if (offProds.length > 0) {
+                  return new Response(
+                    JSON.stringify({
+                      ...offAhData,
+                      products: offProds.map((p) => ({ ...p, scannedBarcode: trimmed })),
+                    }),
+                    {
+                      status: 200,
+                      headers: {
+                        ...corsHeaders,
+                        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+                      },
+                    }
+                  );
+                }
+              }
+            }
+          }
+        }
+      } catch (offErr) {
+        console.warn('OpenFoodFacts fallback lookup error:', offErr);
+      }
+    }
+
+    if (prods.length > 0 && /^\d{8,14}$/.test(trimmed)) {
+      ahJson.products = prods.map((p) => ({ ...p, scannedBarcode: trimmed }));
+    }
+
+    return new Response(JSON.stringify(ahJson), {
       status: 200,
       headers: {
         ...corsHeaders,
