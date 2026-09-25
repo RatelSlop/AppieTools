@@ -76,6 +76,55 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   try {
     let token = await getAhToken(false);
+    const trimmed = query.trim();
+
+    // If query is an 8-14 digit barcode/GTIN, try direct GTIN lookup first
+    if (/^\d{8,14}$/.test(trimmed)) {
+      try {
+        const gtinUrl = `https://api.ah.nl/mobile-services/product/search/v1/gtin/${trimmed}`;
+        let gtinRes = await fetch(gtinUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': USER_AGENT,
+            'X-Application': 'AHWEBSHOP',
+            'Accept': 'application/json',
+          },
+        });
+
+        if (gtinRes.status === 401) {
+          token = await getAhToken(true);
+          gtinRes = await fetch(gtinUrl, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'User-Agent': USER_AGENT,
+              'X-Application': 'AHWEBSHOP',
+              'Accept': 'application/json',
+            },
+          });
+        }
+
+        if (gtinRes.ok) {
+          const product = (await gtinRes.json()) as Record<string, unknown>;
+          if (product && product.webshopId) {
+            return new Response(
+              JSON.stringify({
+                products: [product],
+                page: { totalElements: 1, totalPages: 1, size: 1, number: 0 },
+              }),
+              {
+                status: 200,
+                headers: {
+                  ...corsHeaders,
+                  'Cache-Control': 'public, max-age=86400, s-maxage=86400',
+                },
+              }
+            );
+          }
+        }
+      } catch (gtinErr) {
+        console.warn('GTIN direct lookup failed, falling back to text search:', gtinErr);
+      }
+    }
 
     let ahRes = await fetch(targetUrl, {
       headers: {

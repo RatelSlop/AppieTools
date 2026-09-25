@@ -67,13 +67,42 @@ function ahDevProxyPlugin(): Plugin {
             const page = url.searchParams.get('page') || '0';
 
             const token = await getAhToken();
+            const trimmed = query.trim();
+
+            if (/^\d{8,14}$/.test(trimmed)) {
+              try {
+                const gtinRes = await fetch(`https://api.ah.nl/mobile-services/product/search/v1/gtin/${trimmed}`, {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    'User-Agent': 'Appie/8.22.3',
+                    'X-Application': 'AHWEBSHOP',
+                    'Accept': 'application/json',
+                  },
+                });
+                if (gtinRes.ok) {
+                  const product = await gtinRes.json();
+                  if (product && product.webshopId) {
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify({
+                      products: [product],
+                      page: { totalElements: 1, totalPages: 1, size: 1, number: 0 },
+                    }));
+                    return;
+                  }
+                }
+              } catch (e) {
+                console.warn('Dev proxy GTIN lookup failed:', e);
+              }
+            }
+
             const targetUrl = `https://api.ah.nl/mobile-services/product/search/v2?query=${encodeURIComponent(query)}&size=${size}&page=${page}`;
 
             const ahRes = await fetch(targetUrl, {
               headers: {
                 Authorization: `Bearer ${token}`,
-                'User-Agent': 'Appie/8.22.1',
+                'User-Agent': 'Appie/8.22.3',
                 'X-Application': 'AHWEBSHOP',
+                'Accept': 'application/json',
               },
             });
 
