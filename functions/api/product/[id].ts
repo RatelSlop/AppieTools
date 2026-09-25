@@ -3,9 +3,11 @@ interface Env {}
 let cachedToken: string | null = null;
 let tokenExpiresAt = 0;
 
-async function getAhToken(): Promise<string> {
+const USER_AGENT = 'Appie/8.81.1 (nl.ah.appie; Android 14)';
+
+async function getAhToken(forceRefresh = false): Promise<string> {
   const now = Date.now();
-  if (cachedToken && now < tokenExpiresAt - 60000) {
+  if (!forceRefresh && cachedToken && now < tokenExpiresAt - 60000) {
     return cachedToken;
   }
 
@@ -13,18 +15,23 @@ async function getAhToken(): Promise<string> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'User-Agent': 'Appie/8.22.1',
+      'User-Agent': USER_AGENT,
+      'Accept': 'application/json',
     },
     body: JSON.stringify({ clientId: 'appie' }),
   });
 
   if (!res.ok) {
+    cachedToken = null;
+    tokenExpiresAt = 0;
     throw new Error(`Failed to obtain AH auth token: ${res.statusText}`);
   }
 
   const data = (await res.json()) as { access_token: string; expires_in: number };
   cachedToken = data.access_token;
-  tokenExpiresAt = Date.now() + (data.expires_in || 3600) * 1000;
+  // Cache for at most 15 minutes to prevent stale tokens
+  const ttlSeconds = Math.min(data.expires_in || 900, 900);
+  tokenExpiresAt = Date.now() + ttlSeconds * 1000;
   return cachedToken;
 }
 
@@ -45,17 +52,33 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     });
   }
 
-  try {
-    const token = await getAhToken();
-    const targetUrl = `https://api.ah.nl/mobile-services/product/detail/v4/fir/${encodeURIComponent(productId)}`;
+  const targetUrl = `https://api.ah.nl/mobile-services/product/detail/v4/fir/${encodeURIComponent(productId)}`;
 
-    const ahRes = await fetch(targetUrl, {
+  try {
+    let token = await getAhToken(false);
+
+    let ahRes = await fetch(targetUrl, {
       headers: {
         Authorization: `Bearer ${token}`,
-        'User-Agent': 'Appie/8.22.1',
+        'User-Agent': USER_AGENT,
         'X-Application': 'AHWEBSHOP',
+        'Accept': 'application/json',
       },
     });
+
+    // If token is rejected (401 or 403), force refresh and retry once automatically
+    if (ahRes.status === 401 || ahRes.status === 403) {
+      console.warn(`AH API returned ${ahRes.status} for product ${productId}, refreshing token...`);
+      token = await getAhToken(true);
+      ahRes = await fetch(targetUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'User-Agent': USER_AGENT,
+          'X-Application': 'AHWEBSHOP',
+          'Accept': 'application/json',
+        },
+      });
+    }
 
     if (!ahRes.ok) {
       return new Response(
@@ -79,7 +102,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     let gtin: string | null = null;
     if (ahData.tradeItem?.gtin) {
       gtin = String(ahData.tradeItem.gtin);
-      // Remove leading zeros if it's 14 digits GTIN-14 to get standard 13-digit EAN
       if (gtin.length === 14 && gtin.startsWith('0')) {
         gtin = gtin.substring(1);
       }
@@ -94,7 +116,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         status: 200,
         headers: {
           ...corsHeaders,
-          'Cache-Control': 'public, max-age=86400', // cache 24h for details
+          'Cache-Control': 'public, max-age=43200', // cache 12h
         },
       }
     );

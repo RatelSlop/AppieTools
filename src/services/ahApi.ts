@@ -1,15 +1,29 @@
 import { AhProductCard, AhSearchResult, PrintLabelItem } from '../types';
 
 /**
- * Searches for Albert Heijn products using the API proxy.
+ * Searches for Albert Heijn products using the API proxy with auto-retry.
  */
-export async function searchAhProducts(query: string, page = 0, size = 20): Promise<AhSearchResult> {
+export async function searchAhProducts(
+  query: string,
+  page = 0,
+  size = 20,
+  isRetry = false
+): Promise<AhSearchResult> {
   if (!query.trim()) {
     return { products: [], page: { size, totalElements: 0, totalPages: 0, number: 0 } };
   }
 
   try {
-    const res = await fetch(`/api/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`);
+    const res = await fetch(
+      `/api/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`
+    );
+
+    // If forbidden, unauthorized or rate limited, auto-retry once after a short delay
+    if ((res.status === 401 || res.status === 403 || res.status === 429) && !isRetry) {
+      await new Promise((r) => setTimeout(r, 600));
+      return searchAhProducts(query, page, size, true);
+    }
+
     if (!res.ok) {
       throw new Error(`Zoekopdracht mislukt (status: ${res.status})`);
     }
@@ -43,11 +57,17 @@ export async function searchAhProducts(query: string, page = 0, size = 20): Prom
 }
 
 /**
- * Fetches product detail to extract the official 13-digit EAN (GTIN).
+ * Fetches product detail to extract the official 13-digit EAN (GTIN) with auto-retry.
  */
-export async function getProductGtin(webshopId: number): Promise<string | null> {
+export async function getProductGtin(webshopId: number, isRetry = false): Promise<string | null> {
   try {
     const res = await fetch(`/api/product/${webshopId}`);
+
+    if ((res.status === 401 || res.status === 403) && !isRetry) {
+      await new Promise((r) => setTimeout(r, 600));
+      return getProductGtin(webshopId, true);
+    }
+
     if (!res.ok) {
       return null;
     }
