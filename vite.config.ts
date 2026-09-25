@@ -3,9 +3,8 @@ import react from '@vitejs/plugin-react';
 
 // Dev proxy plugin for Albert Heijn API during local development
 function ahDevProxyPlugin(): Plugin {
-  const FALLBACK_TOKEN = '399821673_9fd-45db-bc82-cae4043811ff';
-  let cachedToken: string = FALLBACK_TOKEN;
-  let tokenExpiresAt = Date.now() + 86400 * 1000 * 6;
+  let cachedToken: string | null = null;
+  let tokenExpiresAt = 0;
   let pendingTokenPromise: Promise<string> | null = null;
 
   async function getAhToken(): Promise<string> {

@@ -27,7 +27,17 @@ export async function searchAhProducts(
     }
 
     if (!res.ok) {
-      throw new Error(`Zoekopdracht mislukt (status: ${res.status})`);
+      try {
+        const errJson = (await res.json()) as { error?: string };
+        if (errJson?.error) {
+          throw new Error(errJson.error);
+        }
+      } catch (parseErr) {
+        if (parseErr instanceof Error && !parseErr.message.startsWith('Zoekopdracht mislukt')) {
+          throw parseErr;
+        }
+      }
+      throw new Error(`Albert Heijn reageert tijdelijk niet (${res.status}). Probeer het over een ogenblik opnieuw.`);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

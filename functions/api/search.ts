@@ -1,9 +1,7 @@
 interface Env {}
 
-// Known valid anonymous token as resilient fallback (AH anonymous tokens are valid for 7 days)
-const FALLBACK_TOKEN = '399821673_9fd-45db-bc82-cae4043811ff';
-let cachedToken: string = FALLBACK_TOKEN;
-let tokenExpiresAt = Date.now() + 86400 * 1000 * 6; // Valid for ~6 days
+let cachedToken: string | null = null;
+let tokenExpiresAt = 0;
 let pendingTokenPromise: Promise<string> | null = null;
 
 const USER_AGENT = 'Appie/8.22.3';
@@ -14,7 +12,7 @@ async function getAhToken(forceRefresh = false): Promise<string> {
     return cachedToken;
   }
 
-  // Deduplicate concurrent token requests in the same worker
+  // Deduplicate concurrent token requests in the same worker isolate
   if (pendingTokenPromise) {
     return pendingTokenPromise;
   }
@@ -35,19 +33,23 @@ async function getAhToken(forceRefresh = false): Promise<string> {
         const data = (await res.json()) as { access_token?: string; expires_in?: number };
         if (data?.access_token) {
           cachedToken = data.access_token;
-          const ttlSeconds = (data.expires_in && data.expires_in > 3600) ? data.expires_in : 86400;
+          const ttlSeconds = (data.expires_in && data.expires_in > 3600) ? Math.min(data.expires_in, 86400) : 43200;
           tokenExpiresAt = Date.now() + ttlSeconds * 1000;
           return cachedToken;
         }
       }
-      console.warn(`AH token endpoint responded with status ${res.status}. Falling back to cached token.`);
+      console.warn(`AH token endpoint responded with status ${res.status}`);
     } catch (err) {
-      console.warn('Network error while requesting AH token. Falling back to cached token:', err);
+      console.warn('Network error while requesting AH token:', err);
     } finally {
       pendingTokenPromise = null;
     }
 
-    return cachedToken || FALLBACK_TOKEN;
+    if (cachedToken) {
+      return cachedToken;
+    }
+
+    throw new Error('Albert Heijn authenticatieservice is tijdelijk niet bereikbaar.');
   })();
 
   return pendingTokenPromise;
@@ -91,7 +93,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           },
         });
 
-        if (gtinRes.status === 401) {
+        if (gtinRes.status === 401 || gtinRes.status === 403) {
           token = await getAhToken(true);
           gtinRes = await fetch(gtinUrl, {
             headers: {
@@ -135,9 +137,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       },
     });
 
-    // Only refresh token if AH specifically rejects with 401 Unauthorized (expired token)
-    if (ahRes.status === 401) {
-      console.warn('AH API returned 401, refreshing token and retrying...');
+    // If token is rejected (401 Unauthorized or 403 Forbidden), force refresh and retry once
+    if (ahRes.status === 401 || ahRes.status === 403) {
+      console.warn(`AH API returned ${ahRes.status}, refreshing token and retrying once...`);
       token = await getAhToken(true);
       ahRes = await fetch(targetUrl, {
         headers: {
@@ -151,7 +153,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     if (!ahRes.ok) {
       console.warn(`AH API search error status: ${ahRes.status}`);
-      // Return 200 with error property so client never encounters an unhandled 500 error
       return new Response(
         JSON.stringify({
           products: [],
@@ -177,13 +178,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const message = error instanceof Error ? error.message : 'Onbekende fout';
     console.error('Unhandled search handler error:', error);
     return new Response(
       JSON.stringify({
         products: [],
         page: { totalElements: 0 },
-        error: `Verbindingsfout: ${message}`,
+        error: message,
       }),
       {
         status: 200,
