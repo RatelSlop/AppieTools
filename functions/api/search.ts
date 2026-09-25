@@ -12,6 +12,26 @@ async function getAhToken(forceRefresh = false): Promise<string> {
     return cachedToken;
   }
 
+  // Check Cloudflare edge cache across isolates in this datacenter
+  const cacheKey = new Request('https://appietools.hooijmaijers.me/ah-internal-token');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cfCache = typeof caches !== 'undefined' && (caches as any).default ? (caches as any).default : null;
+
+  if (!forceRefresh && cfCache) {
+    try {
+      const match = await cfCache.match(cacheKey);
+      if (match) {
+        const text = await match.text();
+          const tokenStr = text.trim();
+          cachedToken = tokenStr;
+          tokenExpiresAt = Date.now() + 43200 * 1000;
+          return tokenStr;
+      }
+    } catch (e) {
+      console.warn('Cache match error:', e);
+    }
+  }
+
   // Deduplicate concurrent token requests in the same worker isolate
   if (pendingTokenPromise) {
     return pendingTokenPromise;
@@ -19,15 +39,25 @@ async function getAhToken(forceRefresh = false): Promise<string> {
 
   pendingTokenPromise = (async () => {
     try {
-      const res = await fetch('https://api.ah.nl/mobile-auth/v1/auth/token/anonymous', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': USER_AGENT,
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ clientId: 'appie' }),
-      });
+      const doFetch = async () => {
+        return await fetch('https://api.ah.nl/mobile-auth/v1/auth/token/anonymous', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': USER_AGENT,
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({ clientId: 'appie' }),
+        });
+      };
+
+      let res = await doFetch();
+
+      // If rate-limited or error, wait 400ms and retry once
+      if (!res.ok) {
+        await new Promise((r) => setTimeout(r, 400));
+        res = await doFetch();
+      }
 
       if (res.ok) {
         const data = (await res.json()) as { access_token?: string; expires_in?: number };
@@ -35,6 +65,21 @@ async function getAhToken(forceRefresh = false): Promise<string> {
           cachedToken = data.access_token;
           const ttlSeconds = (data.expires_in && data.expires_in > 3600) ? Math.min(data.expires_in, 86400) : 43200;
           tokenExpiresAt = Date.now() + ttlSeconds * 1000;
+
+          // Store in Cloudflare Cache API for other isolates
+          if (cfCache) {
+            try {
+              const cacheRes = new Response(data.access_token, {
+                headers: {
+                  'Cache-Control': `public, max-age=${ttlSeconds}`,
+                },
+              });
+              await cfCache.put(cacheKey, cacheRes);
+            } catch (cacheErr) {
+              console.warn('Cache put error:', cacheErr);
+            }
+          }
+
           return cachedToken;
         }
       }
