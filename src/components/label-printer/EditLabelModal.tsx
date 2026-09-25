@@ -110,6 +110,10 @@ export const EditLabelModal: React.FC<EditLabelModalProps> = ({
             <input
               type="text"
               required
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
+              autoCorrect="off"
               value={barcode}
               onChange={(e) => setBarcode(e.target.value)}
               placeholder="13 of 8 cijfers"
@@ -123,6 +127,7 @@ export const EditLabelModal: React.FC<EditLabelModalProps> = ({
             </label>
             <input
               type="text"
+              inputMode="decimal"
               placeholder="bijv. 4.75"
               value={price}
               onChange={(e) => setPrice(e.target.value)}

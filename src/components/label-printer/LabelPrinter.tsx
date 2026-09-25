@@ -6,6 +6,7 @@ import { PrintQueue } from './PrintQueue';
 import { SheetConfigurator } from './SheetConfigurator';
 import { A4SheetPreview } from './A4SheetPreview';
 import { EditLabelModal } from './EditLabelModal';
+import { Printer } from 'lucide-react';
 
 interface LabelPrinterProps {
   queue: PrintLabelItem[];
@@ -85,7 +86,7 @@ export const LabelPrinter: React.FC<LabelPrinterProps> = ({
   const totalLabels = queue.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6 pb-16 sm:pb-0">
       <div className="no-print space-y-6">
         {/* 1. AH Product Zoeken */}
         <ProductSearch onAddLabel={onAddLabel} />
@@ -132,6 +133,27 @@ export const LabelPrinter: React.FC<LabelPrinterProps> = ({
         label={editingItem}
         onSave={handleSaveEditedItem}
       />
+
+      {/* Mobile Floating Print Bar */}
+      {totalLabels > 0 && (
+        <div className="no-print sm:hidden fixed bottom-0 left-0 right-0 z-30 px-4 py-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-200 dark:border-slate-800 shadow-2xl flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold text-gray-900 dark:text-white">
+              {totalLabels} {totalLabels === 1 ? 'label' : 'labels'} gereed
+            </p>
+            <p className="text-[10px] text-gray-500 dark:text-gray-400">
+              A4 stickervel
+            </p>
+          </div>
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl font-bold text-xs bg-ah-blue hover:bg-ah-blueDark text-white shadow-md shadow-ah-blue/30 active:scale-95 transition-all"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Afdrukken</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

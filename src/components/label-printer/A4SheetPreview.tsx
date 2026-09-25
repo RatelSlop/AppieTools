@@ -18,7 +18,13 @@ export const A4SheetPreview: React.FC<A4SheetPreviewProps> = ({
   showProductImage,
   startOffset,
 }) => {
-  const [zoom, setZoom] = useState<number>(0.75); // 75% default fit for screen
+  const [zoom, setZoom] = useState<number>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      const fitZoom = (window.innerWidth - 40) / 794;
+      return Math.max(0.35, Math.min(0.65, Math.round(fitZoom * 100) / 100));
+    }
+    return 0.75;
+  });
 
   // Flatten items by quantity
   const flattenedLabels: PrintLabelItem[] = [];

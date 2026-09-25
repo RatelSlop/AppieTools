@@ -140,6 +140,12 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({ onAddToQueue
               <input
                 id="barcode-digits"
                 type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder={type === 'EAN13' ? 'bijv. 8711200431632' : 'bijv. 96385074'}

@@ -84,22 +84,26 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 p-5 mb-6 transition-colors">
-      <div className="mb-4">
-        <label htmlFor="ah-search-input" className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
+    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-5 mb-5 sm:mb-6 transition-colors">
+      <div className="mb-3 sm:mb-4">
+        <label htmlFor="ah-search-input" className="block text-xs sm:text-sm font-semibold text-gray-900 dark:text-white mb-1.5 sm:mb-2">
           Albert Heijn Product Zoeken
         </label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-ah-blue" /> : <Search className="w-5 h-5" />}
+            {isLoading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-ah-blue" /> : <Search className="w-4 h-4 sm:w-5 sm:h-5" />}
           </div>
           <input
             id="ah-search-input"
             type="text"
             value={query}
             onChange={handleInputChange}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
             placeholder="Typ een productnaam, merk, artikelnummer of streepjescode..."
-            className="w-full pl-11 pr-10 py-3 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ah-blue focus:border-transparent text-sm transition-all shadow-inner"
+            className="w-full pl-10 sm:pl-11 pr-10 py-2.5 sm:py-3 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ah-blue focus:border-transparent text-xs sm:text-sm transition-all shadow-inner"
           />
           {query && (
             <button
@@ -114,10 +118,10 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
 
       {/* Quick suggestions if no query */}
       {!query && (
-        <div className="flex flex-wrap items-center gap-1.5 pt-1">
-          <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mr-1">
+        <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+          <span className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mr-1 shrink-0">
             <Sparkles className="w-3.5 h-3.5 text-ah-blue" />
-            Suggesties:
+            <span className="hidden sm:inline">Suggesties:</span>
           </span>
           {QUICK_SEARCH_EXAMPLES.map((example) => (
             <button
@@ -126,7 +130,7 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
                 setQuery(example);
                 performSearch(example);
               }}
-              className="text-xs px-2.5 py-1 rounded-full bg-gray-100 hover:bg-ah-blueLight hover:text-ah-blueDark dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600 transition-colors"
+              className="text-[11px] sm:text-xs px-2.5 py-1 rounded-full bg-gray-100 hover:bg-ah-blueLight hover:text-ah-blueDark dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600 transition-colors shrink-0 whitespace-nowrap"
             >
               {example}
             </button>

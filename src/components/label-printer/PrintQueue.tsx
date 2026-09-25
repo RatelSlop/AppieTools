@@ -26,20 +26,20 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
   const totalPages = Math.ceil(totalLabels / labelsPerPage) || 1;
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 p-5 mb-6 transition-colors">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-100 dark:border-slate-700 gap-3">
+    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-5 mb-5 sm:mb-6 transition-colors">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 sm:pb-4 border-b border-gray-100 dark:border-slate-700 gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-ah-blueLight dark:bg-ah-blue/20 text-ah-blue flex items-center justify-center">
-            <Layers className="w-5 h-5" />
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-ah-blueLight dark:bg-ah-blue/20 text-ah-blue flex items-center justify-center shrink-0">
+            <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
               Printwachtrij
-              <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-ah-blue text-white">
+              <span className="text-[11px] sm:text-xs px-2 py-0.5 rounded-full font-semibold bg-ah-blue text-white">
                 {totalLabels} {totalLabels === 1 ? 'label' : 'labels'}
               </span>
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400">
               {totalLabels === 0
                 ? 'Nog geen labels toegevoegd'
                 : `Past op ${totalPages} A4-${totalPages === 1 ? 'vel' : 'vellen'} (${labelsPerPage} per pagina)`}
@@ -47,22 +47,22 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={onAddManualLabel}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-ah-blue bg-ah-blueLight hover:bg-ah-blue/20 dark:bg-slate-700 dark:text-ah-blue transition-colors"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-xl text-xs font-medium text-ah-blue bg-ah-blueLight hover:bg-ah-blue/20 dark:bg-slate-700 dark:text-ah-blue transition-colors"
           >
-            <PlusCircle className="w-4 h-4" />
-            <span>Handmatig label toevoegen</span>
+            <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>Handmatig label</span>
           </button>
 
           {queue.length > 0 && (
             <button
               onClick={onClearQueue}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+              className="flex items-center justify-center gap-1 px-3 py-2 sm:py-1.5 rounded-xl text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Wachtrij legen</span>
+              <span>Wissen</span>
             </button>
           )}
         </div>
