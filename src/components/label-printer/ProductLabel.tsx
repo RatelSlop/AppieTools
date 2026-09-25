@@ -7,6 +7,7 @@ interface ProductLabelProps {
   widthMm: number;
   heightMm: number;
   showCutLines: boolean;
+  showProductImage?: boolean;
   isPrintMode?: boolean;
 }
 
@@ -15,9 +16,11 @@ export const ProductLabel: React.FC<ProductLabelProps> = ({
   widthMm,
   heightMm,
   showCutLines,
+  showProductImage = true,
   isPrintMode = false,
 }) => {
   const barcodeRef = useRef<SVGSVGElement | null>(null);
+  const hasImage = Boolean(showProductImage && item.imageUrl);
 
   useEffect(() => {
     if (!barcodeRef.current || !item.barcode) return;
@@ -28,20 +31,20 @@ export const ProductLabel: React.FC<ProductLabelProps> = ({
 
       JsBarcode(barcodeRef.current, cleanBarcode, {
         format,
-        width: 1.4,
-        height: 28,
+        width: 1.35,
+        height: hasImage ? 20 : 27,
         displayValue: true,
-        fontSize: 10,
+        fontSize: 9.5,
         font: 'monospace',
         textMargin: 1,
-        margin: 2,
+        margin: 1,
         background: '#ffffff',
         lineColor: '#000000',
       });
     } catch (e) {
       console.warn('JsBarcode render error for code:', item.barcode, e);
     }
-  }, [item.barcode]);
+  }, [item.barcode, hasImage]);
 
   return (
     <div
@@ -53,19 +56,32 @@ export const ProductLabel: React.FC<ProductLabelProps> = ({
         showCutLines ? 'border border-dashed border-gray-400' : 'border border-transparent'
       } ${!isPrintMode ? 'hover:shadow-md' : ''}`}
     >
-      {/* Top Header: Title & Size */}
-      <div className="w-full flex items-start justify-between gap-1 leading-tight">
-        <div className="flex-1 min-w-0 pr-1">
-          <p className="font-bold text-xs tracking-tight line-clamp-2 text-gray-900 leading-snug">
-            {item.title}
-          </p>
-        </div>
-
-        {item.salesUnitSize && (
-          <span className="shrink-0 text-[10px] font-semibold text-gray-700 bg-gray-100 px-1 py-0.5 rounded">
-            {item.salesUnitSize}
-          </span>
+      {/* Top Header: Image, Title & Size */}
+      <div className="w-full flex items-start gap-1.5 leading-tight">
+        {hasImage && (
+          <div className="w-[12mm] h-[12mm] shrink-0 bg-white rounded flex items-center justify-center overflow-hidden border border-gray-200 p-0.5">
+            <img
+              src={item.imageUrl}
+              alt=""
+              crossOrigin="anonymous"
+              className="max-h-full max-w-full object-contain mix-blend-multiply"
+              loading="eager"
+            />
+          </div>
         )}
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-1">
+            <p className="font-bold text-[10.5px] tracking-tight line-clamp-2 text-gray-900 leading-snug">
+              {item.title}
+            </p>
+            {item.salesUnitSize && (
+              <span className="shrink-0 text-[8.5px] font-semibold text-gray-700 bg-gray-100 px-1 py-0.2 rounded">
+                {item.salesUnitSize}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Center: Scannable Barcode */}
@@ -78,10 +94,10 @@ export const ProductLabel: React.FC<ProductLabelProps> = ({
       </div>
 
       {/* Bottom Info: AH Article Number & Optional Price */}
-      <div className="w-full flex items-center justify-between text-[9px] text-gray-600 font-mono pt-0.5 border-t border-gray-100">
+      <div className="w-full flex items-center justify-between text-[8.5px] text-gray-600 font-mono pt-0.5 border-t border-gray-100">
         <span>Art. {item.articleNumber || item.productId || '---'}</span>
         {item.price !== null && item.price !== undefined && (
-          <span className="font-sans font-bold text-[10px] text-gray-900">
+          <span className="font-sans font-bold text-[9.5px] text-gray-900">
             €{Number(item.price).toFixed(2).replace('.', ',')}
           </span>
         )}

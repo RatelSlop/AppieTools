@@ -1,13 +1,15 @@
 import React from 'react';
 import { SheetTemplate } from '../../types';
 import { SHEET_TEMPLATES } from '../../services/printTemplates';
-import { Printer, Settings, Scissors, SkipForward } from 'lucide-react';
+import { Printer, Settings, Scissors, SkipForward, Image as ImageIcon } from 'lucide-react';
 
 interface SheetConfiguratorProps {
   selectedTemplate: SheetTemplate;
   onSelectTemplate: (template: SheetTemplate) => void;
   showCutLines: boolean;
   onToggleCutLines: (show: boolean) => void;
+  showProductImage: boolean;
+  onToggleProductImage: (show: boolean) => void;
   startOffset: number;
   onUpdateStartOffset: (offset: number) => void;
   onPrint: () => void;
@@ -19,6 +21,8 @@ export const SheetConfigurator: React.FC<SheetConfiguratorProps> = ({
   onSelectTemplate,
   showCutLines,
   onToggleCutLines,
+  showProductImage,
+  onToggleProductImage,
   startOffset,
   onUpdateStartOffset,
   onPrint,
@@ -52,9 +56,9 @@ export const SheetConfigurator: React.FC<SheetConfiguratorProps> = ({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 mt-4">
         {/* Template Preset Selector */}
-        <div className="lg:col-span-2">
+        <div className="sm:col-span-2 lg:col-span-2">
           <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
             Stickervel Indeling
           </label>
@@ -74,6 +78,35 @@ export const SheetConfigurator: React.FC<SheetConfiguratorProps> = ({
           </select>
           <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
             {selectedTemplate.description}
+          </p>
+        </div>
+
+        {/* Product Photo Toggle */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
+            <ImageIcon className="w-3.5 h-3.5 text-gray-400" />
+            <span>Productfoto</span>
+          </label>
+          <button
+            type="button"
+            onClick={() => onToggleProductImage(!showProductImage)}
+            className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl border transition-colors ${
+              showProductImage
+                ? 'border-ah-blue bg-ah-blueLight text-ah-blueDark dark:bg-slate-700 dark:text-ah-blue'
+                : 'border-gray-300 dark:border-slate-600 text-gray-600 dark:text-gray-400 bg-white dark:bg-slate-900'
+            }`}
+          >
+            <span>{showProductImage ? 'Foto zichtbaar' : 'Geen foto'}</span>
+            <span
+              className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                showProductImage ? 'bg-ah-blue text-white' : 'bg-gray-200 dark:bg-slate-700 text-transparent'
+              }`}
+            >
+              ✓
+            </span>
+          </button>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+            Toon productafbeelding op label
           </p>
         </div>
 
@@ -110,7 +143,7 @@ export const SheetConfigurator: React.FC<SheetConfiguratorProps> = ({
         <div>
           <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
             <SkipForward className="w-3.5 h-3.5 text-gray-400" />
-            <span>Startpositie overslaan</span>
+            <span>Startpositie</span>
           </label>
           <input
             type="number"
@@ -122,7 +155,7 @@ export const SheetConfigurator: React.FC<SheetConfiguratorProps> = ({
             className="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-ah-blue focus:outline-none"
           />
           <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-            Sla reeds gebruikte stickers over
+            Sla gebruikte stickers over
           </p>
         </div>
       </div>

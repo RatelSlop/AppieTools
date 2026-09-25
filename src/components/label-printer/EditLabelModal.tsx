@@ -22,6 +22,7 @@ export const EditLabelModal: React.FC<EditLabelModalProps> = ({
   const [articleNumber, setArticleNumber] = useState('');
   const [barcode, setBarcode] = useState('');
   const [price, setPrice] = useState<string>('');
+  const [imageUrl, setImageUrl] = useState('');
 
   useEffect(() => {
     if (label) {
@@ -30,6 +31,7 @@ export const EditLabelModal: React.FC<EditLabelModalProps> = ({
       setArticleNumber(label.articleNumber);
       setBarcode(label.barcode);
       setPrice(label.price !== null && label.price !== undefined ? String(label.price) : '');
+      setImageUrl(label.imageUrl || '');
     }
   }, [label]);
 
@@ -48,6 +50,7 @@ export const EditLabelModal: React.FC<EditLabelModalProps> = ({
       articleNumber: articleNumber.trim(),
       barcode: cleanBarcode,
       price: price ? parseFloat(price.replace(',', '.')) : null,
+      imageUrl: imageUrl.trim() || undefined,
     });
     onClose();
   };
@@ -125,6 +128,41 @@ export const EditLabelModal: React.FC<EditLabelModalProps> = ({
               onChange={(e) => setPrice(e.target.value)}
               className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-ah-blue focus:outline-none"
             />
+          </div>
+        </div>
+
+        {/* Product Image URL */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+            Productfoto URL (optioneel)
+          </label>
+          <div className="flex items-center gap-2">
+            {imageUrl ? (
+              <div className="w-10 h-10 shrink-0 rounded-lg bg-gray-100 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 p-1 flex items-center justify-center overflow-hidden">
+                <img
+                  src={imageUrl}
+                  alt=""
+                  className="max-h-full max-w-full object-contain mix-blend-multiply dark:mix-blend-normal"
+                />
+              </div>
+            ) : null}
+            <input
+              type="url"
+              placeholder="https://static.ah.nl/..."
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              className="flex-1 px-3 py-2 text-xs rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-ah-blue focus:outline-none"
+            />
+            {imageUrl && (
+              <button
+                type="button"
+                onClick={() => setImageUrl('')}
+                className="text-xs text-red-500 hover:text-red-700 px-2 py-1"
+                title="Afbeelding verwijderen"
+              >
+                Verwijder
+              </button>
+            )}
           </div>
         </div>
 

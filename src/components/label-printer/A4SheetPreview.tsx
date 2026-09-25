@@ -7,6 +7,7 @@ interface A4SheetPreviewProps {
   queue: PrintLabelItem[];
   template: SheetTemplate;
   showCutLines: boolean;
+  showProductImage: boolean;
   startOffset: number;
 }
 
@@ -14,6 +15,7 @@ export const A4SheetPreview: React.FC<A4SheetPreviewProps> = ({
   queue,
   template,
   showCutLines,
+  showProductImage,
   startOffset,
 }) => {
   const [zoom, setZoom] = useState<number>(0.75); // 75% default fit for screen
@@ -147,6 +149,7 @@ export const A4SheetPreview: React.FC<A4SheetPreviewProps> = ({
                       widthMm={template.labelWidthMm}
                       heightMm={template.labelHeightMm}
                       showCutLines={showCutLines}
+                      showProductImage={showProductImage}
                     />
                   ) : (
                     <div
@@ -201,6 +204,7 @@ export const A4SheetPreview: React.FC<A4SheetPreviewProps> = ({
                   widthMm={template.labelWidthMm}
                   heightMm={template.labelHeightMm}
                   showCutLines={showCutLines}
+                  showProductImage={showProductImage}
                   isPrintMode={true}
                 />
               ) : (

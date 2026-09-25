@@ -20,6 +20,7 @@ export const LabelPrinter: React.FC<LabelPrinterProps> = ({
 }) => {
   const [template, setTemplate] = useState<SheetTemplate>(DEFAULT_TEMPLATE);
   const [showCutLines, setShowCutLines] = useState<boolean>(true);
+  const [showProductImage, setShowProductImage] = useState<boolean>(true);
   const [startOffset, setStartOffset] = useState<number>(0);
   const [editingItem, setEditingItem] = useState<PrintLabelItem | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -106,6 +107,8 @@ export const LabelPrinter: React.FC<LabelPrinterProps> = ({
           onSelectTemplate={setTemplate}
           showCutLines={showCutLines}
           onToggleCutLines={setShowCutLines}
+          showProductImage={showProductImage}
+          onToggleProductImage={setShowProductImage}
           startOffset={startOffset}
           onUpdateStartOffset={setStartOffset}
           onPrint={handlePrint}
@@ -118,6 +121,7 @@ export const LabelPrinter: React.FC<LabelPrinterProps> = ({
         queue={queue}
         template={template}
         showCutLines={showCutLines}
+        showProductImage={showProductImage}
         startOffset={startOffset}
       />
 
