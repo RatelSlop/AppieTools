@@ -5,6 +5,7 @@ import { Footer } from './components/common/Footer';
 import { LabelPrinter } from './components/label-printer/LabelPrinter';
 import { BarcodeGenerator } from './components/barcode-generator/BarcodeGenerator';
 import { CheckCircle2 } from 'lucide-react';
+import { decodeShareUrlToQueue } from './components/common/ShareQueueModal';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('label-printer');
@@ -19,6 +20,17 @@ export const App: React.FC = () => {
 
   const [queue, setQueue] = useState<PrintLabelItem[]>(() => {
     if (typeof window !== 'undefined') {
+      if (window.location.hash.startsWith('#share=')) {
+        try {
+          const base64Str = window.location.hash.replace('#share=', '');
+          const shared = decodeShareUrlToQueue(base64Str);
+          if (shared && shared.length > 0) {
+            return shared;
+          }
+        } catch (e) {
+          console.warn('Fout bij decoderen gedeelde link:', e);
+        }
+      }
       try {
         const saved = localStorage.getItem('appietools_queue');
         if (saved) return JSON.parse(saved);
@@ -53,6 +65,13 @@ export const App: React.FC = () => {
     }
     localStorage.setItem('appietools_dark_mode', String(darkMode));
   }, [darkMode]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash.startsWith('#share=')) {
+      showToast('Stickervel succesvol geladen via gedeelde link!');
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }, []);
 
   useEffect(() => {
     try {

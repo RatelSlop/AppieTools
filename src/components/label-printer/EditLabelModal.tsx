@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { PrintLabelItem, ExpiryType } from '../../types';
 import { validateBarcode, formatEanDisplay } from '../../services/barcodeUtils';
-import { Check, AlertTriangle, Calendar } from 'lucide-react';
+import { Check, AlertTriangle, Calendar, Leaf } from 'lucide-react';
 
 interface EditLabelModalProps {
   isOpen: boolean;
@@ -26,6 +26,7 @@ export const EditLabelModal: React.FC<EditLabelModalProps> = ({
   const [hasExpiry, setHasExpiry] = useState(false);
   const [expiryDate, setExpiryDate] = useState('');
   const [expiryType, setExpiryType] = useState<ExpiryType>('THT');
+  const [dietaryBadges, setDietaryBadges] = useState<string[]>([]);
 
   useEffect(() => {
     if (label) {
@@ -38,6 +39,7 @@ export const EditLabelModal: React.FC<EditLabelModalProps> = ({
       setHasExpiry(!!label.expiryDate);
       setExpiryDate(label.expiryDate || '');
       setExpiryType(label.expiryType || 'THT');
+      setDietaryBadges(label.dietaryBadges || []);
     }
   }, [label]);
 
@@ -67,6 +69,7 @@ export const EditLabelModal: React.FC<EditLabelModalProps> = ({
       imageUrl: imageUrl.trim() || undefined,
       expiryDate: hasExpiry && expiryDate ? expiryDate : undefined,
       expiryType: hasExpiry && expiryDate ? expiryType : undefined,
+      dietaryBadges,
     });
     onClose();
   };
@@ -266,6 +269,49 @@ export const EditLabelModal: React.FC<EditLabelModalProps> = ({
               </div>
             </div>
           )}
+        </div>
+
+        {/* Dieet & Allergenen Section */}
+        <div className="p-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50/70 dark:bg-slate-800/50 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+              <Leaf className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Dieet & Allergenen Badges</span>
+            </span>
+            <span className="text-[11px] text-gray-400">Klik om in/uit te schakelen</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {[
+              { id: 'vegan', label: 'Vegan' },
+              { id: 'vega', label: 'Vegetarisch' },
+              { id: 'glutenvrij', label: 'Glutenvrij' },
+              { id: 'lactosevrij', label: 'Lactosevrij' },
+              { id: 'notenvrij', label: 'Notenvrij' },
+              { id: 'halal', label: 'Halal' },
+            ].map((badge) => {
+              const isSelected = dietaryBadges.includes(badge.id);
+              return (
+                <button
+                  key={badge.id}
+                  type="button"
+                  onClick={() => {
+                    if (isSelected) {
+                      setDietaryBadges(dietaryBadges.filter((b) => b !== badge.id));
+                    } else {
+                      setDietaryBadges([...dietaryBadges, badge.id]);
+                    }
+                  }}
+                  className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-all ${
+                    isSelected
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                      : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-slate-600 hover:border-emerald-400'
+                  }`}
+                >
+                  {badge.label} {isSelected && '✓'}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Validation feedback */}

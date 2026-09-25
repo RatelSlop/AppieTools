@@ -28,6 +28,8 @@ export interface AhProductCard {
   subCategory?: string;
   brand?: string;
   scannedBarcode?: string;
+  propertyIcons?: string[];
+  discountLabels?: AhDiscountLabel[];
 }
 
 export interface AhSearchResult {
@@ -54,6 +56,10 @@ export interface PrintLabelItem {
   imageUrl?: string;
   expiryDate?: string; // YYYY-MM-DD
   expiryType?: ExpiryType;
+  dietaryBadges?: string[]; // e.g. ['vegan', 'glutenvrij', 'lactosevrij']
+  isBonus?: boolean;
+  bonusMechanism?: string; // e.g. '1+1 gratis', '2e halve prijs'
+  regularPrice?: number | null;
 }
 
 export interface SheetTemplate {

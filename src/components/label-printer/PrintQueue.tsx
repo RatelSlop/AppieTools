@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { PrintLabelItem } from '../../types';
-import { Trash2, Edit2, Plus, Minus, PlusCircle, Layers, FileText, Upload } from 'lucide-react';
+import { Trash2, Edit2, Plus, Minus, PlusCircle, Layers, FileText, Upload, Share2 } from 'lucide-react';
 import { formatEanDisplay } from '../../services/barcodeUtils';
 import { BatchImportModal } from '../common/BatchImportModal';
+import { ShareQueueModal } from '../common/ShareQueueModal';
 
 interface PrintQueueProps {
   queue: PrintLabelItem[];
@@ -13,6 +14,7 @@ interface PrintQueueProps {
   onClearQueue: () => void;
   onAddManualLabel: () => void;
   onAddMultipleLabels?: (labels: PrintLabelItem[]) => void;
+  onImportQueue?: (labels: PrintLabelItem[], mode: 'replace' | 'append') => void;
 }
 
 export const PrintQueue: React.FC<PrintQueueProps> = ({
@@ -24,8 +26,10 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
   onClearQueue,
   onAddManualLabel,
   onAddMultipleLabels,
+  onImportQueue,
 }) => {
   const [isBatchOpen, setIsBatchOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const totalLabels = queue.reduce((sum, item) => sum + item.quantity, 0);
   const totalPages = Math.ceil(totalLabels / labelsPerPage) || 1;
 
@@ -52,6 +56,17 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          {queue.length > 0 && (
+            <button
+              onClick={() => setIsShareModalOpen(true)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-xl text-xs font-medium text-sky-700 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-900/40 border border-sky-200 dark:border-sky-800/50 transition-colors"
+              title="Deel deze printwachtrij via een link of exporteer als JSON"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>Delen</span>
+            </button>
+          )}
+
           {onAddMultipleLabels && (
             <button
               onClick={() => setIsBatchOpen(true)}
@@ -115,7 +130,7 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
                 )}
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <h4 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                       {item.title}
                     </h4>
@@ -124,10 +139,37 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
                         ({item.salesUnitSize})
                       </span>
                     )}
+                    {item.isBonus && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-ah-orange text-white shrink-0">
+                        {item.bonusMechanism || 'Bonus'}
+                      </span>
+                    )}
+                    {item.dietaryBadges && item.dietaryBadges.length > 0 && (
+                      <span className="hidden sm:inline-flex items-center gap-1">
+                        {item.dietaryBadges.map((badge) => (
+                          <span
+                            key={badge}
+                            className="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 uppercase"
+                          >
+                            {badge}
+                          </span>
+                        ))}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">
+                  <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5 flex-wrap">
                     <span>EAN: {formatEanDisplay(item.barcode)}</span>
                     <span>Art: {item.articleNumber || item.productId || '---'}</span>
+                    {item.price !== null && item.price !== undefined && (
+                      <span className="font-semibold text-gray-800 dark:text-gray-200">
+                        €{Number(item.price).toFixed(2).replace('.', ',')}
+                      </span>
+                    )}
+                    {item.expiryDate && (
+                      <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                        {item.expiryType || 'THT'}: {item.expiryDate}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -188,6 +230,20 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
           }}
         />
       )}
+
+      {/* Share & Export Modal */}
+      <ShareQueueModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        queue={queue}
+        onImportQueue={(importedLabels, mode) => {
+          if (onImportQueue) {
+            onImportQueue(importedLabels, mode);
+          } else if (onAddMultipleLabels) {
+            onAddMultipleLabels(importedLabels);
+          }
+        }}
+      />
     </div>
   );
 };

@@ -133,6 +133,18 @@ export async function createLabelFromProduct(product: AhProductCard): Promise<Pr
   // Find suitable product image
   const imgUrl = product.images?.[0]?.url || '';
 
+  const normalPrice = product.priceBeforeBonus ?? product.currentPrice ?? null;
+  const isBonus = !!product.isBonus;
+  const bonusMechanism =
+    product.bonusMechanism ||
+    product.discountLabels?.[0]?.defaultDescription ||
+    (isBonus ? 'Bonus' : undefined);
+
+  // Normalize dietary badges from AH propertyIcons (e.g. ['vegan', 'glutenvrij', 'lactosevrij'])
+  const dietaryBadges = Array.isArray(product.propertyIcons)
+    ? product.propertyIcons.map((p) => p.toLowerCase().trim()).filter(Boolean)
+    : [];
+
   return {
     id: `ah-${product.webshopId}-${Date.now()}`,
     productId: product.webshopId,
@@ -140,8 +152,12 @@ export async function createLabelFromProduct(product: AhProductCard): Promise<Pr
     salesUnitSize: product.salesUnitSize || '',
     articleNumber: String(product.hqId || product.webshopId),
     barcode,
-    price: product.currentPrice ?? product.priceBeforeBonus ?? null,
+    price: normalPrice, // Always print regular normal price as agreed!
+    regularPrice: normalPrice,
     quantity: 1,
     imageUrl: imgUrl,
+    dietaryBadges,
+    isBonus,
+    bonusMechanism,
   };
 }

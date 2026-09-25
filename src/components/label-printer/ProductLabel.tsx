@@ -84,11 +84,38 @@ export const ProductLabel: React.FC<ProductLabelProps> = ({
             <p className="font-bold text-[10.5px] tracking-tight line-clamp-2 text-gray-900 leading-snug">
               {item.title}
             </p>
-            {item.salesUnitSize && (
-              <span className="shrink-0 text-[8.5px] font-semibold text-gray-700 bg-gray-100 px-1 py-0.2 rounded">
-                {item.salesUnitSize}
-              </span>
-            )}
+            <div className="flex flex-col items-end gap-0.5 shrink-0">
+              {item.salesUnitSize && (
+                <span className="text-[8px] font-semibold text-gray-700 bg-gray-100 px-1 py-0.2 rounded">
+                  {item.salesUnitSize}
+                </span>
+              )}
+              {item.dietaryBadges && item.dietaryBadges.length > 0 && (
+                <div className="flex items-center gap-0.5">
+                  {item.dietaryBadges.slice(0, 3).map((badge) => (
+                    <span
+                      key={badge}
+                      className="text-[6.5px] font-bold uppercase px-0.5 py-0.2 rounded bg-emerald-50 text-emerald-800 border border-emerald-300 leading-none"
+                      title={badge}
+                    >
+                      {badge === 'glutenvrij'
+                        ? 'GV'
+                        : badge === 'lactosevrij'
+                        ? 'LV'
+                        : badge === 'vegan'
+                        ? 'VEGAN'
+                        : badge === 'vega' || badge === 'vegetarisch'
+                        ? 'VEGA'
+                        : badge === 'halal'
+                        ? 'HALAL'
+                        : badge === 'notenvrij'
+                        ? 'NV'
+                        : badge.slice(0, 3).toUpperCase()}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

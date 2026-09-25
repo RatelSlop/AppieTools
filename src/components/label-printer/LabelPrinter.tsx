@@ -83,6 +83,14 @@ export const LabelPrinter: React.FC<LabelPrinterProps> = ({
     setQueue((prev) => [...prev, ...newLabels]);
   };
 
+  const handleImportQueue = (labels: PrintLabelItem[], mode: 'replace' | 'append') => {
+    if (mode === 'replace') {
+      setQueue(labels);
+    } else {
+      setQueue((prev) => [...prev, ...labels]);
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -105,6 +113,7 @@ export const LabelPrinter: React.FC<LabelPrinterProps> = ({
           onClearQueue={handleClearQueue}
           onAddManualLabel={handleAddManualLabel}
           onAddMultipleLabels={handleAddMultipleLabels}
+          onImportQueue={handleImportQueue}
         />
 
         {/* 3. A4 & Vel Configurator */}
