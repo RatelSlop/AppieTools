@@ -97,7 +97,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 print:p-0 print:m-0 print:max-w-none print:w-auto">
         {activeTab === 'label-printer' ? (
           <LabelPrinter
             queue={queue}
@@ -105,12 +105,14 @@ export const App: React.FC = () => {
             onAddLabel={handleAddLabel}
           />
         ) : (
-          <BarcodeGenerator
-            onAddToQueue={(label) => {
-              handleAddLabel(label);
-              showToast('Barcode toegevoegd aan de printwachtrij!');
-            }}
-          />
+          <div className="no-print">
+            <BarcodeGenerator
+              onAddToQueue={(label) => {
+                handleAddLabel(label);
+                showToast('Barcode toegevoegd aan de printwachtrij!');
+              }}
+            />
+          </div>
         )}
       </main>
 

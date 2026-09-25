@@ -85,31 +85,33 @@ export const LabelPrinter: React.FC<LabelPrinterProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* 1. AH Product Zoeken */}
-      <ProductSearch onAddLabel={onAddLabel} />
+      <div className="no-print space-y-6">
+        {/* 1. AH Product Zoeken */}
+        <ProductSearch onAddLabel={onAddLabel} />
 
-      {/* 2. Printwachtrij */}
-      <PrintQueue
-        queue={queue}
-        labelsPerPage={template.labelsPerPage}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveItem}
-        onEditItem={handleEditItem}
-        onClearQueue={handleClearQueue}
-        onAddManualLabel={handleAddManualLabel}
-      />
+        {/* 2. Printwachtrij */}
+        <PrintQueue
+          queue={queue}
+          labelsPerPage={template.labelsPerPage}
+          onUpdateQuantity={handleUpdateQuantity}
+          onRemoveItem={handleRemoveItem}
+          onEditItem={handleEditItem}
+          onClearQueue={handleClearQueue}
+          onAddManualLabel={handleAddManualLabel}
+        />
 
-      {/* 3. A4 & Vel Configurator */}
-      <SheetConfigurator
-        selectedTemplate={template}
-        onSelectTemplate={setTemplate}
-        showCutLines={showCutLines}
-        onToggleCutLines={setShowCutLines}
-        startOffset={startOffset}
-        onUpdateStartOffset={setStartOffset}
-        onPrint={handlePrint}
-        totalLabels={totalLabels}
-      />
+        {/* 3. A4 & Vel Configurator */}
+        <SheetConfigurator
+          selectedTemplate={template}
+          onSelectTemplate={setTemplate}
+          showCutLines={showCutLines}
+          onToggleCutLines={setShowCutLines}
+          startOffset={startOffset}
+          onUpdateStartOffset={setStartOffset}
+          onPrint={handlePrint}
+          totalLabels={totalLabels}
+        />
+      </div>
 
       {/* 4. Live A4 Voorbeeld & Print weergave */}
       <A4SheetPreview

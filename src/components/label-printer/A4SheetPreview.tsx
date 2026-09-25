@@ -69,7 +69,8 @@ export const A4SheetPreview: React.FC<A4SheetPreviewProps> = ({
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 p-5 mb-8 transition-colors">
+    <>
+      <div className="no-print bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 p-5 mb-8 transition-colors">
       {/* Header with zoom controls */}
       <div className="no-print flex items-center justify-between pb-4 border-b border-gray-100 dark:border-slate-700">
         <div className="flex items-center gap-2">
@@ -169,52 +170,53 @@ export const A4SheetPreview: React.FC<A4SheetPreviewProps> = ({
           </div>
         ))}
       </div>
-
-      {/* Pages Container (Print Mode: Pure Millimeters) */}
-      <div className="print-only">
-        {pages.map((pageItems, pageIdx) => (
-          <div
-            key={pageIdx}
-            className="print-page-container"
-            style={{
-              width: '210mm',
-              height: '297mm',
-              display: 'grid',
-              gridTemplateColumns: `repeat(${template.columns}, ${template.labelWidthMm}mm)`,
-              gridTemplateRows: `repeat(${template.rows}, ${template.labelHeightMm}mm)`,
-              columnGap: `${template.gapHorizontalMm}mm`,
-              rowGap: `${template.gapVerticalMm}mm`,
-              paddingTop: `${template.marginTopMm}mm`,
-              paddingBottom: `${template.marginBottomMm}mm`,
-              paddingLeft: `${template.marginLeftMm}mm`,
-              paddingRight: `${template.marginRightMm}mm`,
-              boxSizing: 'border-box',
-            }}
-          >
-            {pageItems.map((item, slotIdx) => (
-              <div key={slotIdx} className="box-border">
-                {item ? (
-                  <ProductLabel
-                    item={item}
-                    widthMm={template.labelWidthMm}
-                    heightMm={template.labelHeightMm}
-                    showCutLines={showCutLines}
-                    isPrintMode={true}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: `${template.labelWidthMm}mm`,
-                      height: `${template.labelHeightMm}mm`,
-                    }}
-                    className={showCutLines ? 'border border-dashed border-gray-200' : ''}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
     </div>
-  );
+
+    {/* Pages Container (Print Mode: Pure Millimeters) */}
+    <div className="print-only">
+      {pages.map((pageItems, pageIdx) => (
+        <div
+          key={pageIdx}
+          className="print-page-container"
+          style={{
+            width: '210mm',
+            height: '297mm',
+            display: 'grid',
+            gridTemplateColumns: `repeat(${template.columns}, ${template.labelWidthMm}mm)`,
+            gridTemplateRows: `repeat(${template.rows}, ${template.labelHeightMm}mm)`,
+            columnGap: `${template.gapHorizontalMm}mm`,
+            rowGap: `${template.gapVerticalMm}mm`,
+            paddingTop: `${template.marginTopMm}mm`,
+            paddingBottom: `${template.marginBottomMm}mm`,
+            paddingLeft: `${template.marginLeftMm}mm`,
+            paddingRight: `${template.marginRightMm}mm`,
+            boxSizing: 'border-box',
+          }}
+        >
+          {pageItems.map((item, slotIdx) => (
+            <div key={slotIdx} className="box-border">
+              {item ? (
+                <ProductLabel
+                  item={item}
+                  widthMm={template.labelWidthMm}
+                  heightMm={template.labelHeightMm}
+                  showCutLines={showCutLines}
+                  isPrintMode={true}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: `${template.labelWidthMm}mm`,
+                    height: `${template.labelHeightMm}mm`,
+                  }}
+                  className={showCutLines ? 'border border-dashed border-gray-200' : ''}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  </>
+);
 };
