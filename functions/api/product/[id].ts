@@ -4,7 +4,7 @@ let cachedToken: string | null = null;
 let tokenExpiresAt = 0;
 let pendingTokenPromise: Promise<string> | null = null;
 
-const USER_AGENT = 'Appie/8.22.3';
+const USER_AGENT = 'Appie/9.46.0 Android/14-API34';
 
 async function getAhToken(forceRefresh = false): Promise<string> {
   const now = Date.now();
@@ -17,15 +17,25 @@ async function getAhToken(forceRefresh = false): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cfCache = typeof caches !== 'undefined' && (caches as any).default ? (caches as any).default : null;
 
-  if (!forceRefresh && cfCache) {
+  if (forceRefresh) {
+    cachedToken = null;
+    tokenExpiresAt = 0;
+    if (cfCache) {
+      try {
+        await cfCache.delete(cacheKey);
+      } catch (delErr) {
+        console.warn('Cache delete error:', delErr);
+      }
+    }
+  } else if (cfCache) {
     try {
       const match = await cfCache.match(cacheKey);
       if (match) {
         const text = await match.text();
-          const tokenStr = text.trim();
-          cachedToken = tokenStr;
-          tokenExpiresAt = Date.now() + 43200 * 1000;
-          return tokenStr;
+        const tokenStr = text.trim();
+        cachedToken = tokenStr;
+        tokenExpiresAt = Date.now() + 43200 * 1000;
+        return tokenStr;
       }
     } catch (e) {
       console.warn('Cache match error:', e);
@@ -43,8 +53,9 @@ async function getAhToken(forceRefresh = false): Promise<string> {
         return await fetch('https://api.ah.nl/mobile-auth/v1/auth/token/anonymous', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json; charset=UTF-8',
             'User-Agent': USER_AGENT,
+            'X-Application': 'AHWEBSHOP',
             'Accept': 'application/json',
           },
           body: JSON.stringify({ clientId: 'appie' }),
@@ -53,9 +64,9 @@ async function getAhToken(forceRefresh = false): Promise<string> {
 
       let res = await doFetch();
 
-      // If rate-limited or error, wait 400ms and retry once
+      // If rate-limited or error, wait 500ms and retry once
       if (!res.ok) {
-        await new Promise((r) => setTimeout(r, 400));
+        await new Promise((r) => setTimeout(r, 500));
         res = await doFetch();
       }
 
@@ -90,7 +101,7 @@ async function getAhToken(forceRefresh = false): Promise<string> {
       pendingTokenPromise = null;
     }
 
-    if (cachedToken) {
+    if (!forceRefresh && cachedToken) {
       return cachedToken;
     }
 
@@ -131,14 +142,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       },
     });
 
-    // If rate-limited (429/403) or token rejected (401), back off and retry
+    // If rate-limited (429/403) or token rejected (401), force refresh token and retry
     if (ahRes.status === 401 || ahRes.status === 403 || ahRes.status === 429) {
-      if (ahRes.status === 401) {
-        token = await getAhToken(true);
-      } else {
-        await new Promise((r) => setTimeout(r, 400));
-      }
-
+      token = await getAhToken(true);
+      await new Promise((r) => setTimeout(r, 400));
       ahRes = await fetch(targetUrl, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -147,19 +154,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           'Accept': 'application/json',
         },
       });
-
-      if (ahRes.status === 403) {
-        token = await getAhToken(true);
-        await new Promise((r) => setTimeout(r, 300));
-        ahRes = await fetch(targetUrl, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'User-Agent': USER_AGENT,
-            'X-Application': 'AHWEBSHOP',
-            'Accept': 'application/json',
-          },
-        });
-      }
     }
 
     if (!ahRes.ok) {

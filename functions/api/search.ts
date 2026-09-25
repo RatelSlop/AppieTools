@@ -4,7 +4,7 @@ let cachedToken: string | null = null;
 let tokenExpiresAt = 0;
 let pendingTokenPromise: Promise<string> | null = null;
 
-const USER_AGENT = 'Appie/8.22.3';
+const USER_AGENT = 'Appie/9.46.0 Android/14-API34';
 
 async function getAhToken(forceRefresh = false): Promise<string> {
   const now = Date.now();
@@ -17,15 +17,25 @@ async function getAhToken(forceRefresh = false): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cfCache = typeof caches !== 'undefined' && (caches as any).default ? (caches as any).default : null;
 
-  if (!forceRefresh && cfCache) {
+  if (forceRefresh) {
+    cachedToken = null;
+    tokenExpiresAt = 0;
+    if (cfCache) {
+      try {
+        await cfCache.delete(cacheKey);
+      } catch (delErr) {
+        console.warn('Cache delete error:', delErr);
+      }
+    }
+  } else if (cfCache) {
     try {
       const match = await cfCache.match(cacheKey);
       if (match) {
         const text = await match.text();
-          const tokenStr = text.trim();
-          cachedToken = tokenStr;
-          tokenExpiresAt = Date.now() + 43200 * 1000;
-          return tokenStr;
+        const tokenStr = text.trim();
+        cachedToken = tokenStr;
+        tokenExpiresAt = Date.now() + 43200 * 1000;
+        return tokenStr;
       }
     } catch (e) {
       console.warn('Cache match error:', e);
@@ -43,8 +53,9 @@ async function getAhToken(forceRefresh = false): Promise<string> {
         return await fetch('https://api.ah.nl/mobile-auth/v1/auth/token/anonymous', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json; charset=UTF-8',
             'User-Agent': USER_AGENT,
+            'X-Application': 'AHWEBSHOP',
             'Accept': 'application/json',
           },
           body: JSON.stringify({ clientId: 'appie' }),
@@ -53,9 +64,9 @@ async function getAhToken(forceRefresh = false): Promise<string> {
 
       let res = await doFetch();
 
-      // If rate-limited or error, wait 400ms and retry once
+      // If rate-limited or error, wait 500ms and retry once
       if (!res.ok) {
-        await new Promise((r) => setTimeout(r, 400));
+        await new Promise((r) => setTimeout(r, 500));
         res = await doFetch();
       }
 
@@ -90,7 +101,7 @@ async function getAhToken(forceRefresh = false): Promise<string> {
       pendingTokenPromise = null;
     }
 
-    if (cachedToken) {
+    if (!forceRefresh && cachedToken) {
       return cachedToken;
     }
 
@@ -118,8 +129,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       headers: corsHeaders,
     });
   }
-
-  const targetUrl = `https://api.ah.nl/mobile-services/product/search/v2?query=${encodeURIComponent(query)}&size=${size}&page=${page}`;
 
   try {
     let token = await getAhToken(false);
@@ -173,45 +182,39 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     }
 
-    let ahRes = await fetch(targetUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'User-Agent': USER_AGENT,
-        'X-Application': 'AHWEBSHOP',
-        'Accept': 'application/json',
-      },
-    });
+    const v2Url = `https://api.ah.nl/mobile-services/product/search/v2?query=${encodeURIComponent(query)}&size=${size}&page=${page}`;
+    const v1Url = `https://api.ah.nl/mobile-services/product/search/v1?query=${encodeURIComponent(query)}&size=${size}&page=${page}`;
 
-    // If rate-limited (429/403) or token rejected (401), back off and retry
-    if (ahRes.status === 401 || ahRes.status === 403 || ahRes.status === 429) {
-      if (ahRes.status === 401) {
-        token = await getAhToken(true);
-      } else {
-        // Wait 400ms for rate-limit window to ease
-        await new Promise((r) => setTimeout(r, 400));
-      }
-
-      ahRes = await fetch(targetUrl, {
+    const executeSearch = async (url: string, currentToken: string) => {
+      return await fetch(url, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${currentToken}`,
           'User-Agent': USER_AGENT,
           'X-Application': 'AHWEBSHOP',
           'Accept': 'application/json',
         },
       });
+    };
 
-      // If still 403 on retry, try refreshing token as final recovery
-      if (ahRes.status === 403) {
-        token = await getAhToken(true);
-        await new Promise((r) => setTimeout(r, 300));
-        ahRes = await fetch(targetUrl, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'User-Agent': USER_AGENT,
-            'X-Application': 'AHWEBSHOP',
-            'Accept': 'application/json',
-          },
-        });
+    let ahRes = await executeSearch(v2Url, token);
+
+    // If rate-limited (429/403) or token rejected (401), force refresh token and retry
+    if (ahRes.status === 401 || ahRes.status === 403 || ahRes.status === 429) {
+      token = await getAhToken(true);
+      await new Promise((r) => setTimeout(r, 400));
+      ahRes = await executeSearch(v2Url, token);
+    }
+
+    // If still failing with 403 or error, try fallback to v1 search endpoint
+    if (!ahRes.ok) {
+      console.warn(`AH v2 search responded with ${ahRes.status}, falling back to v1...`);
+      try {
+        const v1Res = await executeSearch(v1Url, token);
+        if (v1Res.ok) {
+          ahRes = v1Res;
+        }
+      } catch (v1Err) {
+        console.warn('v1 search fallback error:', v1Err);
       }
     }
 

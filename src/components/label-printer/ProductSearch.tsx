@@ -54,7 +54,7 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
     setHasSearched(true);
 
     try {
-      const response = await searchAhProducts(searchTerm, 0, 16, false, controller.signal);
+      const response = await searchAhProducts(searchTerm, 0, 16, 0, controller.signal);
       setResults(response.products || []);
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') {

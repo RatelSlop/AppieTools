@@ -7,7 +7,7 @@ export async function searchAhProducts(
   query: string,
   page = 0,
   size = 20,
-  isRetry = false,
+  retryCount = 0,
   signal?: AbortSignal
 ): Promise<AhSearchResult> {
   if (!query.trim()) {
@@ -20,10 +20,10 @@ export async function searchAhProducts(
       { signal }
     );
 
-    // If forbidden, unauthorized or rate limited, auto-retry once after a short delay
-    if ((res.status === 401 || res.status === 403 || res.status === 429) && !isRetry) {
-      await new Promise((r) => setTimeout(r, 600));
-      return searchAhProducts(query, page, size, true, signal);
+    // If forbidden, unauthorized or rate limited, auto-retry up to 2 times after exponential delay
+    if ((res.status === 401 || res.status === 403 || res.status === 429) && retryCount < 2) {
+      await new Promise((r) => setTimeout(r, (retryCount + 1) * 600));
+      return searchAhProducts(query, page, size, retryCount + 1, signal);
     }
 
     if (!res.ok) {
@@ -44,6 +44,10 @@ export async function searchAhProducts(
     const data: any = await res.json();
 
     if (data.error && (!data.products || data.products.length === 0)) {
+      if (retryCount < 2 && (data.error.includes('403') || data.error.includes('401') || data.error.includes('429'))) {
+        await new Promise((r) => setTimeout(r, (retryCount + 1) * 700));
+        return searchAhProducts(query, page, size, retryCount + 1, signal);
+      }
       throw new Error(data.error);
     }
 
