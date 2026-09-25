@@ -13,7 +13,8 @@ AppieTools is een moderne webapplicatie ontworpen om snel en accuraat vervangend
 - **Live Albert Heijn Assortiment Doorzoeken**: Zoek elk artikel op naam, merk of artikelnummer via de officiële AH catalogus.
 - **Automatische EAN/GTIN Ophalen**: Haalt direct de officiële streepjescode (GTIN-13) van het product op.
 - **Printwachtrij**: Voeg meerdere verschillende producten toe en stel per product het gewenst aantal af te drukken exemplaren in (`+` / `-`).
-- **Handmatig Aanpassen**: Bewerk producttitel, formaat/gewicht, artikelnummer of barcode met live GS1-validatie.
+- **Productfoto op het label**: Schakel met 1 klik in of de officiële productfoto op het label geprint moet worden (strak linksboven naast de titel).
+- **Handmatig Aanpassen**: Bewerk producttitel, formaat/gewicht, artikelnummer, barcode of afbeelding-URL met live GS1-validatie.
 - **A4 Stickervel Ondersteuning**:
   - **Standaard stickervel (70 × 37 mm)**: 24 labels per vel (3 kolommen × 8 rijen, bijv. Avery 3474 / Herma 4459).
   - **Breed stickervel (105 × 37 mm)**: 16 labels per vel (2 kolommen × 8 rijen).
