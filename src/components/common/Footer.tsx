@@ -6,7 +6,7 @@ export const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <p className="font-medium text-gray-700 dark:text-gray-300">
-            AppieTools &copy; {new Date().getFullYear()} &bull;{' '}
+            RatelSlop Studios &copy; {new Date().getFullYear()} &bull;{' '}
             <a
               href="https://appietools.hooijmaijers.me"
               className="hover:text-ah-blue transition-colors underline decoration-dotted"
