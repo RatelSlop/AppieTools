@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="14" fill="#00A1E4"/>
+  <!-- Barcode lines -->
+  <rect x="12" y="16" width="3" height="32" rx="1.5" fill="white"/>
+  <rect x="18" y="16" width="2" height="32" rx="1" fill="white"/>
+  <rect x="23" y="16" width="4" height="32" rx="1.5" fill="white"/>
+  <rect x="30" y="16" width="2" height="32" rx="1" fill="white"/>
+  <rect x="35" y="16" width="5" height="32" rx="1.5" fill="white"/>
+  <rect x="43" y="16" width="2" height="32" rx="1" fill="white"/>
+  <rect x="48" y="16" width="4" height="32" rx="1.5" fill="white"/>
+</svg>
