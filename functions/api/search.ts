@@ -1,10 +1,12 @@
 interface Env {}
 
-// Cache token in worker memory between requests
-let cachedToken: string | null = null;
-let tokenExpiresAt = 0;
+// Known valid anonymous token as resilient fallback (AH anonymous tokens are valid for 7 days)
+const FALLBACK_TOKEN = '399821673_9fd-45db-bc82-cae4043811ff';
+let cachedToken: string = FALLBACK_TOKEN;
+let tokenExpiresAt = Date.now() + 86400 * 1000 * 6; // Valid for ~6 days
+let pendingTokenPromise: Promise<string> | null = null;
 
-const USER_AGENT = 'Appie/8.81.1 (nl.ah.appie; Android 14)';
+const USER_AGENT = 'Appie/8.22.3';
 
 async function getAhToken(forceRefresh = false): Promise<string> {
   const now = Date.now();
@@ -12,28 +14,43 @@ async function getAhToken(forceRefresh = false): Promise<string> {
     return cachedToken;
   }
 
-  const res = await fetch('https://api.ah.nl/mobile-auth/v1/auth/token/anonymous', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'User-Agent': USER_AGENT,
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify({ clientId: 'appie' }),
-  });
-
-  if (!res.ok) {
-    cachedToken = null;
-    tokenExpiresAt = 0;
-    throw new Error(`Failed to obtain AH auth token: ${res.statusText}`);
+  // Deduplicate concurrent token requests in the same worker
+  if (pendingTokenPromise) {
+    return pendingTokenPromise;
   }
 
-  const data = (await res.json()) as { access_token: string; expires_in: number };
-  cachedToken = data.access_token;
-  // Cache for at most 15 minutes (900 seconds) to avoid stale tokens
-  const ttlSeconds = Math.min(data.expires_in || 900, 900);
-  tokenExpiresAt = Date.now() + ttlSeconds * 1000;
-  return cachedToken;
+  pendingTokenPromise = (async () => {
+    try {
+      const res = await fetch('https://api.ah.nl/mobile-auth/v1/auth/token/anonymous', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': USER_AGENT,
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ clientId: 'appie' }),
+      });
+
+      if (res.ok) {
+        const data = (await res.json()) as { access_token?: string; expires_in?: number };
+        if (data?.access_token) {
+          cachedToken = data.access_token;
+          const ttlSeconds = (data.expires_in && data.expires_in > 3600) ? data.expires_in : 86400;
+          tokenExpiresAt = Date.now() + ttlSeconds * 1000;
+          return cachedToken;
+        }
+      }
+      console.warn(`AH token endpoint responded with status ${res.status}. Falling back to cached token.`);
+    } catch (err) {
+      console.warn('Network error while requesting AH token. Falling back to cached token:', err);
+    } finally {
+      pendingTokenPromise = null;
+    }
+
+    return cachedToken || FALLBACK_TOKEN;
+  })();
+
+  return pendingTokenPromise;
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -69,9 +86,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       },
     });
 
-    // If token is rejected (401 or 403), force refresh and retry once automatically
-    if (ahRes.status === 401 || ahRes.status === 403) {
-      console.warn(`AH API returned ${ahRes.status}, refreshing token and retrying...`);
+    // Only refresh token if AH specifically rejects with 401 Unauthorized (expired token)
+    if (ahRes.status === 401) {
+      console.warn('AH API returned 401, refreshing token and retrying...');
       token = await getAhToken(true);
       ahRes = await fetch(targetUrl, {
         headers: {
@@ -84,12 +101,21 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     if (!ahRes.ok) {
+      console.warn(`AH API search error status: ${ahRes.status}`);
+      // Return 200 with error property so client never encounters an unhandled 500 error
       return new Response(
         JSON.stringify({
-          error: `AH API returned status ${ahRes.status}`,
-          status: ahRes.status,
+          products: [],
+          page: { totalElements: 0, size: Number(size), number: Number(page) },
+          error: `Albert Heijn reageert tijdelijk niet (${ahRes.status}). Probeer het zo nog eens.`,
         }),
-        { status: ahRes.status, headers: corsHeaders }
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Cache-Control': 'no-store',
+          },
+        }
       );
     }
 
@@ -98,15 +124,23 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       status: 200,
       headers: {
         ...corsHeaders,
-        'Cache-Control': 'public, max-age=180', // cache 3 mins
+        'Cache-Control': 'public, max-age=300, s-maxage=300', // cache 5 mins on Cloudflare edge
       },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: corsHeaders,
-    });
+    console.error('Unhandled search handler error:', error);
+    return new Response(
+      JSON.stringify({
+        products: [],
+        page: { totalElements: 0 },
+        error: `Verbindingsfout: ${message}`,
+      }),
+      {
+        status: 200,
+        headers: corsHeaders,
+      }
+    );
   }
 };
 

@@ -1,13 +1,14 @@
 import { AhProductCard, AhSearchResult, PrintLabelItem } from '../types';
 
 /**
- * Searches for Albert Heijn products using the API proxy with auto-retry.
+ * Searches for Albert Heijn products using the API proxy with auto-retry and AbortSignal.
  */
 export async function searchAhProducts(
   query: string,
   page = 0,
   size = 20,
-  isRetry = false
+  isRetry = false,
+  signal?: AbortSignal
 ): Promise<AhSearchResult> {
   if (!query.trim()) {
     return { products: [], page: { size, totalElements: 0, totalPages: 0, number: 0 } };
@@ -15,13 +16,14 @@ export async function searchAhProducts(
 
   try {
     const res = await fetch(
-      `/api/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`
+      `/api/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`,
+      { signal }
     );
 
     // If forbidden, unauthorized or rate limited, auto-retry once after a short delay
     if ((res.status === 401 || res.status === 403 || res.status === 429) && !isRetry) {
       await new Promise((r) => setTimeout(r, 600));
-      return searchAhProducts(query, page, size, true);
+      return searchAhProducts(query, page, size, true, signal);
     }
 
     if (!res.ok) {
@@ -30,6 +32,10 @@ export async function searchAhProducts(
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = await res.json();
+
+    if (data.error && (!data.products || data.products.length === 0)) {
+      throw new Error(data.error);
+    }
 
     // In some AH responses, products are in `cards` or `products`
     let products: AhProductCard[] = [];
@@ -51,6 +57,9 @@ export async function searchAhProducts(
       },
     };
   } catch (err: unknown) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw err;
+    }
     console.error('Fout bij zoeken naar AH producten:', err);
     throw err;
   }

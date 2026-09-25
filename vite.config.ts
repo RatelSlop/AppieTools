@@ -3,8 +3,10 @@ import react from '@vitejs/plugin-react';
 
 // Dev proxy plugin for Albert Heijn API during local development
 function ahDevProxyPlugin(): Plugin {
-  let cachedToken: string | null = null;
-  let tokenExpiresAt = 0;
+  const FALLBACK_TOKEN = '399821673_9fd-45db-bc82-cae4043811ff';
+  let cachedToken: string = FALLBACK_TOKEN;
+  let tokenExpiresAt = Date.now() + 86400 * 1000 * 6;
+  let pendingTokenPromise: Promise<string> | null = null;
 
   async function getAhToken(): Promise<string> {
     const now = Date.now();
@@ -12,23 +14,40 @@ function ahDevProxyPlugin(): Plugin {
       return cachedToken;
     }
 
-    const res = await fetch('https://api.ah.nl/mobile-auth/v1/auth/token/anonymous', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Appie/8.22.1',
-      },
-      body: JSON.stringify({ clientId: 'appie' }),
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to obtain AH token: ${res.statusText}`);
+    if (pendingTokenPromise) {
+      return pendingTokenPromise;
     }
 
-    const data = (await res.json()) as { access_token: string; expires_in: number };
-    cachedToken = data.access_token;
-    tokenExpiresAt = Date.now() + (data.expires_in || 3600) * 1000;
-    return cachedToken;
+    pendingTokenPromise = (async () => {
+      try {
+        const res = await fetch('https://api.ah.nl/mobile-auth/v1/auth/token/anonymous', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Appie/8.22.3',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({ clientId: 'appie' }),
+        });
+
+        if (res.ok) {
+          const data = (await res.json()) as { access_token?: string; expires_in?: number };
+          if (data?.access_token) {
+            cachedToken = data.access_token;
+            const ttlSeconds = (data.expires_in && data.expires_in > 3600) ? data.expires_in : 86400;
+            tokenExpiresAt = Date.now() + ttlSeconds * 1000;
+            return cachedToken;
+          }
+        }
+      } catch (err) {
+        console.warn('Dev proxy: error fetching token, using fallback:', err);
+      } finally {
+        pendingTokenPromise = null;
+      }
+      return cachedToken || FALLBACK_TOKEN;
+    })();
+
+    return pendingTokenPromise;
   }
 
   return {

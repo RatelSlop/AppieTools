@@ -25,9 +25,14 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
   const [hasSearched, setHasSearched] = useState(false);
 
   const debounceTimeout = useRef<number | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const performSearch = async (searchTerm: string) => {
     if (!searchTerm.trim()) {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
       setResults([]);
       setIsLoading(false);
       setHasSearched(false);
@@ -35,19 +40,31 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
       return;
     }
 
+    // Cancel any previous pending search request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLoading(true);
     setError(null);
     setHasSearched(true);
 
     try {
-      const response = await searchAhProducts(searchTerm, 0, 16);
+      const response = await searchAhProducts(searchTerm, 0, 16, false, controller.signal);
       setResults(response.products || []);
     } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return; // Superseded by a newer search
+      }
       const msg = err instanceof Error ? err.message : 'Er is een fout opgetreden bij het zoeken.';
       setError(msg);
       setResults([]);
     } finally {
-      setIsLoading(false);
+      if (abortControllerRef.current === controller) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -61,7 +78,7 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
 
     debounceTimeout.current = window.setTimeout(() => {
       performSearch(val);
-    }, 400);
+    }, 350);
   };
 
   const handleAdd = async (product: AhProductCard) => {
