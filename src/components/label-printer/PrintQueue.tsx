@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PrintLabelItem } from '../../types';
-import { Trash2, Edit2, Plus, Minus, PlusCircle, Layers, FileText } from 'lucide-react';
+import { Trash2, Edit2, Plus, Minus, PlusCircle, Layers, FileText, Upload } from 'lucide-react';
 import { formatEanDisplay } from '../../services/barcodeUtils';
+import { BatchImportModal } from '../common/BatchImportModal';
 
 interface PrintQueueProps {
   queue: PrintLabelItem[];
@@ -11,6 +12,7 @@ interface PrintQueueProps {
   onEditItem: (item: PrintLabelItem) => void;
   onClearQueue: () => void;
   onAddManualLabel: () => void;
+  onAddMultipleLabels?: (labels: PrintLabelItem[]) => void;
 }
 
 export const PrintQueue: React.FC<PrintQueueProps> = ({
@@ -21,7 +23,9 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
   onEditItem,
   onClearQueue,
   onAddManualLabel,
+  onAddMultipleLabels,
 }) => {
+  const [isBatchOpen, setIsBatchOpen] = useState(false);
   const totalLabels = queue.reduce((sum, item) => sum + item.quantity, 0);
   const totalPages = Math.ceil(totalLabels / labelsPerPage) || 1;
 
@@ -48,6 +52,17 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          {onAddMultipleLabels && (
+            <button
+              onClick={() => setIsBatchOpen(true)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-xl text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800/50 transition-colors"
+              title="Importeer meerdere producten of barcodes tegelijk via CSV of tekst"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Batch import</span>
+            </button>
+          )}
+
           <button
             onClick={onAddManualLabel}
             className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-xl text-xs font-medium text-ah-blue bg-ah-blueLight hover:bg-ah-blue/20 dark:bg-slate-700 dark:text-ah-blue transition-colors"
@@ -161,6 +176,17 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
             </div>
           ))}
         </div>
+      )}
+
+      {onAddMultipleLabels && (
+        <BatchImportModal
+          isOpen={isBatchOpen}
+          onClose={() => setIsBatchOpen(false)}
+          onAddLabels={(labels) => {
+            onAddMultipleLabels(labels);
+            setIsBatchOpen(false);
+          }}
+        />
       )}
     </div>
   );

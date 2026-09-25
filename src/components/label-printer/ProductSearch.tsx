@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Search, Loader2, Plus, Sparkles, X, AlertCircle } from 'lucide-react';
+import { Search, Loader2, Plus, Sparkles, X, AlertCircle, Camera } from 'lucide-react';
 import { AhProductCard, PrintLabelItem } from '../../types';
 import { searchAhProducts, createLabelFromProduct } from '../../services/ahApi';
+import { BarcodeScannerModal } from '../common/BarcodeScannerModal';
 
 interface ProductSearchProps {
   onAddLabel: (label: PrintLabelItem) => void;
@@ -23,6 +24,7 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
   const [results, setResults] = useState<AhProductCard[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const debounceTimeout = useRef<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -128,32 +130,43 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
         <label htmlFor="ah-search-input" className="block text-xs sm:text-sm font-semibold text-gray-900 dark:text-white mb-1.5 sm:mb-2">
           Albert Heijn Product Zoeken
         </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-            {isLoading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-ah-blue" /> : <Search className="w-4 h-4 sm:w-5 sm:h-5" />}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+              {isLoading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-ah-blue" /> : <Search className="w-4 h-4 sm:w-5 sm:h-5" />}
+            </div>
+            <input
+              id="ah-search-input"
+              type="text"
+              value={query}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              placeholder="Typ een productnaam, merk, artikelnummer of streepjescode..."
+              className="w-full pl-10 sm:pl-11 pr-10 py-2.5 sm:py-3 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ah-blue focus:border-transparent text-xs sm:text-sm transition-all shadow-inner"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
-          <input
-            id="ah-search-input"
-            type="text"
-            value={query}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            placeholder="Typ een productnaam, merk, artikelnummer of streepjescode..."
-            className="w-full pl-10 sm:pl-11 pr-10 py-2.5 sm:py-3 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ah-blue focus:border-transparent text-xs sm:text-sm transition-all shadow-inner"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setIsScannerOpen(true)}
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 bg-blue-50 hover:bg-blue-100 dark:bg-slate-700 dark:hover:bg-slate-600 text-ah-blue dark:text-sky-400 font-semibold rounded-xl text-xs sm:text-sm border border-blue-200 dark:border-slate-600 transition-colors shadow-sm shrink-0"
+            title="Scan fysieke barcode met camera"
+          >
+            <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-ah-blue dark:text-sky-400" />
+            <span className="hidden sm:inline">Scan barcode</span>
+          </button>
         </div>
       </form>
 
@@ -279,6 +292,17 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onAddLabel }) => {
           Geen producten gevonden voor <span className="font-semibold text-gray-700 dark:text-gray-300">"{query}"</span>. Probeer een andere term of voeg een handmatig label toe.
         </div>
       )}
+
+      {/* Barcode Camera Scanner Modal */}
+      <BarcodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={(barcode) => {
+          setQuery(barcode);
+          performSearch(barcode);
+          setIsScannerOpen(false);
+        }}
+      />
     </div>
   );
 };

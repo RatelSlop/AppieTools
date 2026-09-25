@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
-import { PrintLabelItem } from '../../types';
+import { PrintLabelItem, ExpiryType } from '../../types';
 import { validateBarcode, formatEanDisplay } from '../../services/barcodeUtils';
-import { Check, AlertTriangle } from 'lucide-react';
+import { Check, AlertTriangle, Calendar } from 'lucide-react';
 
 interface EditLabelModalProps {
   isOpen: boolean;
@@ -23,6 +23,9 @@ export const EditLabelModal: React.FC<EditLabelModalProps> = ({
   const [barcode, setBarcode] = useState('');
   const [price, setPrice] = useState<string>('');
   const [imageUrl, setImageUrl] = useState('');
+  const [hasExpiry, setHasExpiry] = useState(false);
+  const [expiryDate, setExpiryDate] = useState('');
+  const [expiryType, setExpiryType] = useState<ExpiryType>('THT');
 
   useEffect(() => {
     if (label) {
@@ -32,10 +35,21 @@ export const EditLabelModal: React.FC<EditLabelModalProps> = ({
       setBarcode(label.barcode);
       setPrice(label.price !== null && label.price !== undefined ? String(label.price) : '');
       setImageUrl(label.imageUrl || '');
+      setHasExpiry(!!label.expiryDate);
+      setExpiryDate(label.expiryDate || '');
+      setExpiryType(label.expiryType || 'THT');
     }
   }, [label]);
 
   if (!label) return null;
+
+  const setOffsetDate = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    const iso = d.toISOString().split('T')[0];
+    setExpiryDate(iso);
+    setHasExpiry(true);
+  };
 
   const cleanBarcode = barcode.replace(/\D/g, '');
   const barcodeType = cleanBarcode.length <= 8 ? 'EAN8' : 'EAN13';
@@ -51,6 +65,8 @@ export const EditLabelModal: React.FC<EditLabelModalProps> = ({
       barcode: cleanBarcode,
       price: price ? parseFloat(price.replace(',', '.')) : null,
       imageUrl: imageUrl.trim() || undefined,
+      expiryDate: hasExpiry && expiryDate ? expiryDate : undefined,
+      expiryType: hasExpiry && expiryDate ? expiryType : undefined,
     });
     onClose();
   };
@@ -169,6 +185,87 @@ export const EditLabelModal: React.FC<EditLabelModalProps> = ({
               </button>
             )}
           </div>
+        </div>
+
+        {/* Houdbaarheid / THT Section */}
+        <div className="p-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50/70 dark:bg-slate-800/50 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasExpiry}
+                onChange={(e) => {
+                  setHasExpiry(e.target.checked);
+                  if (e.target.checked && !expiryDate) {
+                    setOffsetDate(7); // Default +1 week
+                  }
+                }}
+                className="w-4 h-4 rounded text-ah-blue focus:ring-ah-blue border-gray-300 dark:border-slate-600"
+              />
+              <Calendar className="w-3.5 h-3.5 text-ah-blue" />
+              <span>Houdbaarheidsdatum (THT) toevoegen</span>
+            </label>
+            {hasExpiry && (
+              <span className="text-[11px] text-gray-400">Wordt op sticker geprint</span>
+            )}
+          </div>
+
+          {hasExpiry && (
+            <div className="space-y-2 pt-1 border-t border-gray-200/60 dark:border-slate-700">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    Label type
+                  </label>
+                  <select
+                    value={expiryType}
+                    onChange={(e) => setExpiryType(e.target.value as ExpiryType)}
+                    className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-ah-blue focus:outline-none"
+                  >
+                    <option value="THT">THT (Ten minste houdbaar tot)</option>
+                    <option value="TGT">TGT (Te gebruiken tot)</option>
+                    <option value="Ingevroren op">Ingevroren op</option>
+                    <option value="Geopend op">Geopend op</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    Datum
+                  </label>
+                  <input
+                    type="date"
+                    value={expiryDate}
+                    onChange={(e) => setExpiryDate(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-ah-blue focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Quick Date Presets */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] text-gray-400 mr-0.5">Snel:</span>
+                {[
+                  { label: '+3d', days: 3 },
+                  { label: '+1w', days: 7 },
+                  { label: '+2w', days: 14 },
+                  { label: '+1m', days: 30 },
+                  { label: '+3m', days: 90 },
+                  { label: '+6m', days: 180 },
+                  { label: '+1j', days: 365 },
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => setOffsetDate(preset.days)}
+                    className="text-[10px] px-2 py-0.5 rounded-md bg-white dark:bg-slate-700 hover:bg-ah-blueLight hover:text-ah-blueDark dark:hover:bg-slate-600 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-slate-600 transition-colors"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Validation feedback */}

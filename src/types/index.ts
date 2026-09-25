@@ -39,6 +39,8 @@ export interface AhSearchResult {
   };
 }
 
+export type ExpiryType = 'THT' | 'TGT' | 'Ingevroren op' | 'Geopend op';
+
 export interface PrintLabelItem {
   id: string; // unique item uuid
   productId?: number; // AH webshopId
@@ -49,6 +51,8 @@ export interface PrintLabelItem {
   price?: number | null;
   quantity: number;
   imageUrl?: string;
+  expiryDate?: string; // YYYY-MM-DD
+  expiryType?: ExpiryType;
 }
 
 export interface SheetTemplate {

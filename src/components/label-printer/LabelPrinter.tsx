@@ -79,6 +79,10 @@ export const LabelPrinter: React.FC<LabelPrinterProps> = ({
     setIsEditModalOpen(true);
   };
 
+  const handleAddMultipleLabels = (newLabels: PrintLabelItem[]) => {
+    setQueue((prev) => [...prev, ...newLabels]);
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -100,6 +104,7 @@ export const LabelPrinter: React.FC<LabelPrinterProps> = ({
           onEditItem={handleEditItem}
           onClearQueue={handleClearQueue}
           onAddManualLabel={handleAddManualLabel}
+          onAddMultipleLabels={handleAddMultipleLabels}
         />
 
         {/* 3. A4 & Vel Configurator */}

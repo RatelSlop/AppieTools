@@ -11,6 +11,15 @@ interface ProductLabelProps {
   isPrintMode?: boolean;
 }
 
+function formatDateDutch(iso: string): string {
+  if (!iso) return '';
+  const parts = iso.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return iso;
+}
+
 export const ProductLabel: React.FC<ProductLabelProps> = ({
   item,
   widthMm,
@@ -93,11 +102,18 @@ export const ProductLabel: React.FC<ProductLabelProps> = ({
         />
       </div>
 
-      {/* Bottom Info: AH Article Number & Optional Price */}
-      <div className="w-full flex items-center justify-between text-[8.5px] text-gray-600 font-mono pt-0.5 border-t border-gray-100">
-        <span>Art. {item.articleNumber || item.productId || '---'}</span>
+      {/* Bottom Info: AH Article Number, Optional THT & Optional Price */}
+      <div className="w-full flex items-center justify-between text-[8px] text-gray-600 font-mono pt-0.5 border-t border-gray-150 gap-1">
+        <span className="truncate max-w-[35%]">Art. {item.articleNumber || item.productId || '---'}</span>
+
+        {item.expiryDate && (
+          <span className="font-sans font-bold text-[8.5px] text-gray-900 bg-amber-100/80 border border-amber-300 px-1 py-0.2 rounded shrink-0">
+            {item.expiryType || 'THT'}: {formatDateDutch(item.expiryDate)}
+          </span>
+        )}
+
         {item.price !== null && item.price !== undefined && (
-          <span className="font-sans font-bold text-[9.5px] text-gray-900">
+          <span className="font-sans font-bold text-[9.5px] text-gray-900 shrink-0">
             €{Number(item.price).toFixed(2).replace('.', ',')}
           </span>
         )}

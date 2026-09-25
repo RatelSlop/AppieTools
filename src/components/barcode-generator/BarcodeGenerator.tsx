@@ -7,7 +7,8 @@ import {
   validateBarcode,
   formatEanDisplay,
 } from '../../services/barcodeUtils';
-import { Calculator, Wand2, Sparkles, Check, AlertTriangle, Sliders } from 'lucide-react';
+import { Calculator, Wand2, Sparkles, Check, AlertTriangle, Sliders, Camera } from 'lucide-react';
+import { BarcodeScannerModal } from '../common/BarcodeScannerModal';
 
 interface BarcodeGeneratorProps {
   onAddToQueue: (label: PrintLabelItem) => void;
@@ -27,6 +28,7 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({ onAddToQueue
   const [barWidth, setBarWidth] = useState(2);
   const [barHeight, setBarHeight] = useState(60);
   const [displayValue, setDisplayValue] = useState(true);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const cleanCode = code.replace(/\D/g, '');
   const validation = validateBarcode(cleanCode, type);
@@ -161,6 +163,15 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({ onAddToQueue
                 <Calculator className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Check-digit</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setIsScannerOpen(true)}
+                className="flex items-center gap-1 px-3 py-2.5 rounded-xl text-xs font-medium bg-blue-50 dark:bg-slate-700 hover:bg-blue-100 text-ah-blue dark:text-sky-400 transition-colors"
+                title="Scan streepjescode met camera"
+              >
+                <Camera className="w-3.5 h-3.5 text-ah-blue dark:text-sky-400" />
+                <span className="hidden sm:inline">Scannen</span>
+              </button>
             </div>
 
             {/* Validation alert */}
@@ -294,6 +305,22 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({ onAddToQueue
           onAddToQueue={onAddToQueue}
         />
       </div>
+
+      {/* Camera Barcode Scanner Modal */}
+      <BarcodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={(scannedCode) => {
+          const digits = scannedCode.replace(/\D/g, '');
+          if (digits.length === 8) {
+            setType('EAN8');
+          } else if (digits.length === 12 || digits.length === 13) {
+            setType('EAN13');
+          }
+          setCode(digits);
+          setIsScannerOpen(false);
+        }}
+      />
     </div>
   );
 };
